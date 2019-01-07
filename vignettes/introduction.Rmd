@@ -1,0 +1,265 @@
+---
+title: "Introduction to structlearn: Structure Learning by KL/IC"
+output: rmarkdown::html_vignette
+date: "`r format(Sys.time(), '%d %B, %Y')`"
+author: Mikkel Meyer Andersen
+vignette: >
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteIndexEntry{Introduction}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(fig.width = 7, cache = FALSE)
+```
+
+## Introduction
+
+First, the library is loaded:
+```{r, message=FALSE}
+library(structlearn)
+```
+
+
+```{r}
+data(danedb)
+db <- danedb
+db[, "DYS389II"] <- db[, "DYS389II"] - db[, "DYS389I"]
+```
+
+```{r}
+d <- prepare_data(db)
+print(d)
+plot(d)
+```
+
+```{r}
+clfit <- chow_liu(d)
+clfit
+plot(clfit, layout = layout_as_tree)
+```
+
+```{r}
+cl_to_tcherry(clfit)
+```
+
+
+
+```{r}
+# library(bnlearn)
+# db_fact <- data.frame(apply(db, 2, as.character), stringsAsFactors = TRUE)
+# out <- capture.output(chow_liu_fit_undirected <- chow.liu(db_fact, mi = "mi", debug = TRUE))
+# out
+# 
+# plot(chow_liu_fit_undirected, layout = layout_as_tree)
+# 
+# chow_liu_fit <- cextend(chow_liu_fit_undirected) # To get a DAG, extension is needed
+# plot(chow_liu_fit, layout = layout_as_tree)
+``` 
+
+Chapter 3
+On the Approximation of a Discrete
+Multivariate Probability Distribution Using
+the New Concept of t-Cherry Junction Tree
+
+3.3.3  The Relation Between the Approximations Associated to the First-Order Dependence Tree and t-Cherry-Junction Tree
+
+Cherry trees:
+
+(Vertices, Edges, Cherries)
+
+Cherry: (i, j, k), j middle, edge i-j-k
+Only cherry with two vertices is o--o
+
+From a cherry tree we can obtain another cherry tree by adding a new vertex, j, and
+connecting the new vertex with two already existing vertices i and k by two new edges (i-j and j-k).
+These two edges constitute a cherry (i, j, k). So
+
+   j
+   o
+  / \
+ o   o
+ i   k
+is a cherry tree with cherry (i, j, k).
+
+Note that
+   j
+   o
+  /
+ o 
+ i
+is the only cherry tree with two vertices.
+
+A new cherry tree can be obtained as described above.
+
+Cherry tree not uniquely determined by its graph. 
+The same graph can represent more cherry trees.
+
+Note that in a cherry tree there is exactly one edge which is not part of a
+cherry.
+
+
+t-cherry tree:
+Above we had
+
+> From a cherry tree we can obtain another cherry tree by adding a new vertex, j, and
+connecting the new vertex with two already existing vertices i and k by two new edges (i-j and j-k).
+These two edges constitute a cherry (i, j, k).
+
+If we instead use
+
+> By connecting a new vertex of V by two new edges to two connected vertices
+of a cherry tree, one obtains a new cherry tree.
+
+we get a t-cherry tree instead of a cherry tree.
+
+
+Remark 3.2. From a set of n vertices we obtain a cherry tree with n - 2 cherries.
+
+Remark 3.5. A pair of adjacent vertices from the t-cherry tree may be used several
+times, for connecting new vertices to them.
+
+Algorithm 2.
+
+```{r}
+#1) the spanning tree behind the Chow–Liu
+#2) construct a t-cherry tree from this spanning tree
+#3) Algorithm 1: assign a t-cherry-junction tree to this t-cherry tree
+
+# Algorithm 2.:
+# 1. The first cherry of the t-cherry tree let be defined by any three vertices of the
+# spanning tree which are connected by two edges.
+# 2. We add a new cherry to the t-cherry tree by taking a new vertex of the spanning
+# tree adjacent to the so far constructed t-cherry tree.
+# 3. We repeat step (2) till all vertices from the spanning tree become included in the
+# t-cherry tree.
+
+g_CL <- g_final
+#plot(g_CL, layout = layout_as_tree)
+
+
+#FIXME:
+# Calc MI(i, j, k) and start in that order.
+
+# Calculate three variable mutual information
+
+# A2.1)
+# The first cherry of the t-cherry tree let be defined by any three vertices of the
+# spanning tree which are connected by two edges.
+# Tree -- so start at random node, take random neibour and again random neigbour (but not the first)
+
+g_tCT <- g_CL
+
+set.seed(1000)
+first_cherry_i <- sample(names(V(g_CL)), 1L)
+first_cherry_j <- sample(names(neighbors(g_CL, first_cherry_i)), 1L)
+first_cherry_k <- sample(setdiff(names(neighbors(g_CL, first_cherry_j)), first_cherry_i), 1L) # except i again
+
+
+# first cherry already in tree!
+first_cherry <- c(first_cherry_i, first_cherry_j, first_cherry_k)
+first_cherry 
+
+cherries <- list(first_cherry)
+# vertices_left <- setdiff(names(V(g_CL)), first_cherry)
+# vertices_left
+get_adjencent_vertices <- function(graph, cherries) {
+  adjencent_vertices <- unique(unlist(lapply(cherries, function(vs) {
+    lapply(vs, function(v) {
+      names(neighbors(graph, v))
+    })
+  })))
+  adjencent_vertices
+}
+adjencent_vertices <- get_adjencent_vertices(g_tCT, cherries)
+#adjencent_vertices
+adjencent_vertices_not_in_cherry_already <- setdiff(adjencent_vertices, unlist(cherries))
+adjencent_vertices_not_in_cherry_already
+
+# A2.2. We add a new cherry to the t-cherry tree by taking a new vertex of the spanning
+# tree adjacent to the so far constructed t-cherry tree.
+#    Keep track of neighbours of existing cherries (not already in a cherry).
+#       -> Pick one of these
+#    t cherry (not just cherry), so take random edge (two nodes that are connected) and the nodes there
+plot(g_tCT, layout = layout_as_tree)
+
+while (length(adjencent_vertices_not_in_cherry_already) >= 1L) {
+  # Pick an adjecent vertex by
+  new_cherry_middle <- sample(adjencent_vertices_not_in_cherry_already, 1L)
+  new_cherry_middle
+  
+  # Remove selected new middle to get edges without the selected middle
+  g_tCT_minus_new_middle <- delete_vertices(g_tCT, new_cherry_middle)
+  
+  # Pick two vertices that are connected -- same as picking a random edge; FIXME: random/MI
+  random_edge <- sample(E(g_tCT_minus_new_middle), 1)
+  random_edge_ends <- ends(g_tCT_minus_new_middle, random_edge)
+  
+  new_cherry_left <- random_edge_ends[1L, 1L]
+  new_cherry_right <- random_edge_ends[1L, 2L]
+  
+  new_cherry_left
+  new_cherry_right
+  
+  new_cherry <- c(new_cherry_left, new_cherry_middle, new_cherry_right)
+  new_cherry
+  
+  ##########################
+  
+  # Only add edges if not existing:
+  # The vertex chosen is already connected, so one edge must already exist.
+  # Only add if not already present.
+  
+  if (!are.connected(g_tCT, new_cherry_left, new_cherry_middle)) {
+    g_tCT <- g_tCT + 
+      edge(new_cherry_left, new_cherry_middle)
+  }
+  
+  if (!are.connected(g_tCT, new_cherry_middle, new_cherry_right)) {
+    g_tCT <- g_tCT + 
+      edge(new_cherry_middle, new_cherry_right)
+  }
+
+  plot(g_tCT)
+  
+  cherries[[length(cherries) + 1]] <- new_cherry
+  adjencent_vertices <- get_adjencent_vertices(g_tCT, cherries)
+  adjencent_vertices_not_in_cherry_already <- setdiff(adjencent_vertices, unlist(cherries))
+  
+  #break
+}
+
+plot(g_CL)
+#plot(g_tCT, layout = layout_as_tree)
+
+# FIXME:
+# All already present cherries from Chow-Liu not registered... Should they be in 
+# cherries as well?
+
+# Remark: 3.2: n vertices, n-2 cherries:
+length(cherries)
+ncol(db)
+stopifnot(length(cherries))
+
+library(gRbase)
+g <- igraph::igraph.to.graphNEL(g_tCT)
+g
+g_rip <- rip(g)
+g_rip
+#plot(g_rip)
+
+sapply(g_rip$cliques, length)
+stopifnot(all(sapply(g_rip$cliques, length) == 3L))
+
+sapply(g_rip$separators, length)
+stopifnot(all(sapply(g_rip$separators, length) == 2L))
+
+```
+
+
+
+```{r}
+# A2.1: 
+# three vertices of the spanning tree which are connected by two edges.
+```
+

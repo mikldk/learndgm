@@ -1,0 +1,26 @@
+Package: learndgm
+Type: Package
+Title: Learn structures of decomposable graphical models from data
+Version: 0.0.1
+Authors@R: c(
+    person(given = "Mikkel Meyer", family = "Andersen", 
+        email = "mikl@math.aau.dk", role = c("aut", "cre"))
+  )
+Author: Mikkel Meyer Andersen [aut, cre]
+Maintainer: Mikkel Meyer Andersen <mikl@math.aau.dk>
+Description: Learn structures of decomposable graphical models from data
+License: GPL (>= 2) | file LICENSE
+Imports:
+    Rcpp (>= 0.12.7),
+    igraph (>= 1.0.1),    
+    Matrix (>= 1.2-10),
+    methods
+LinkingTo: Rcpp
+Suggests: knitr, rmarkdown, testthat
+BugReports: https://github.com/mikldk/learndgm/issues
+VignetteBuilder: knitr
+SystemRequirements: C++11
+LazyData: true
+Encoding: UTF-8
+Roxygen: list(markdown = TRUE, roclets = c("rd", "collate", "namespace"))
+RoxygenNote: 6.1.1
