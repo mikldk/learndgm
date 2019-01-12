@@ -9,7 +9,7 @@
 #' 
 #' @export
 all_prufer_sequences <- function(n) {
-  require_single_integer(n, "n")
+  require_single_integer(n)
   n <- as.integer(n)
   
   if (n <= 2) {

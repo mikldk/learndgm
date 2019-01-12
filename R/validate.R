@@ -1,4 +1,6 @@
-require_single_integer <- function(n, name) {
+require_single_integer <- function(n) {
+  name <- substitute(n)
+  
   if (!is.vector(n)) {
     stop(paste0(name, " not a vector"))
   }
