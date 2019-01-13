@@ -14,6 +14,25 @@ test_that("2nd order t-cherry junction trees", {
   }
 })
 
+test_that("all_tcherries(): R/C++", {
+  configs <- list(
+    list(k = 2, ns = 3:5),
+    list(k = 3, ns = 3:5)
+  )
+  
+  for (config in configs) {
+    for (n in config$ns) {
+      ms_r <- all_tcherries__r(n, config$k)
+      ms_cpp <- all_tcherries__cpp(n, config$k)
+      expect_equal(length(ms_r), length(ms_cpp), info = paste0("raw: n = ", n, "; k = ", config$k))
+      
+      um_r <- remove_equal_models(ms_r)
+      um_cpp <- remove_equal_models(ms_cpp)
+      expect_equal(length(um_r), length(um_cpp), info = paste0("unique: n = ", n, "; k = ", config$k))
+    }
+  }
+})
+
 if (FALSE) {
   ms <- all_tcherries(n = 5, k = 3)
   length(ms)

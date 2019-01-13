@@ -71,6 +71,8 @@ remove_equal_models___old_implementation_strhash <- function(models) {
   length(As)
   length(As_hash)
   
+  names(new_models) <- NULL
+  
   return(new_models)
 }
 
@@ -269,7 +271,7 @@ all_tcherries__r <- function(n, k, verbose = FALSE) {
           
           new_clique <- c(sep, x_unused)
           
-          # sort for easier comparing (removing duplicates) later in:
+          # sort for comparing (removing duplicates) later in:
           # model_to_adjacency_matrix(): A[ clique[j1], clique[j2] ]
           new_clique <- sort(new_clique)
           sep <- sort(sep)

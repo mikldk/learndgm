@@ -64,6 +64,10 @@ Rcpp::List rcpp_all_tcherries_worker(const Rcpp::List& models,
           }
           new_clique[km1] = x_unused;
           
+          // sort for comparing (removing duplicates) later in:
+          // model_to_adjacency_matrix(): A[ clique[j1], clique[j2] ]
+          std::sort(new_clique.begin(), new_clique.end());
+          
           Rcpp::List new_model_cliques = cliques;
           new_model_cliques.push_back(new_clique);
           
