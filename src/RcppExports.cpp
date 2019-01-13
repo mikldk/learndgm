@@ -16,9 +16,36 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
+// rcp__remove_equal_models_worker
+Rcpp::IntegerVector rcp__remove_equal_models_worker(Rcpp::ListOf<Rcpp::IntegerVector> adj_mats_upper_tri);
+RcppExport SEXP _learndgm_rcp__remove_equal_models_worker(SEXP adj_mats_upper_triSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< Rcpp::ListOf<Rcpp::IntegerVector> >::type adj_mats_upper_tri(adj_mats_upper_triSEXP);
+    rcpp_result_gen = Rcpp::wrap(rcp__remove_equal_models_worker(adj_mats_upper_tri));
+    return rcpp_result_gen;
+END_RCPP
+}
+// rcpp_all_tcherries_worker
+Rcpp::List rcpp_all_tcherries_worker(const Rcpp::List& models, const Rcpp::IntegerMatrix& kmin1_subsets_idx, int n_unused, bool verbose);
+RcppExport SEXP _learndgm_rcpp_all_tcherries_worker(SEXP modelsSEXP, SEXP kmin1_subsets_idxSEXP, SEXP n_unusedSEXP, SEXP verboseSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< const Rcpp::List& >::type models(modelsSEXP);
+    Rcpp::traits::input_parameter< const Rcpp::IntegerMatrix& >::type kmin1_subsets_idx(kmin1_subsets_idxSEXP);
+    Rcpp::traits::input_parameter< int >::type n_unused(n_unusedSEXP);
+    Rcpp::traits::input_parameter< bool >::type verbose(verboseSEXP);
+    rcpp_result_gen = Rcpp::wrap(rcpp_all_tcherries_worker(models, kmin1_subsets_idx, n_unused, verbose));
+    return rcpp_result_gen;
+END_RCPP
+}
 
 static const R_CallMethodDef CallEntries[] = {
     {"_learndgm_prufer_to_adjacency_matrix", (DL_FUNC) &_learndgm_prufer_to_adjacency_matrix, 1},
+    {"_learndgm_rcp__remove_equal_models_worker", (DL_FUNC) &_learndgm_rcp__remove_equal_models_worker, 1},
+    {"_learndgm_rcpp_all_tcherries_worker", (DL_FUNC) &_learndgm_rcpp_all_tcherries_worker, 4},
     {NULL, NULL, 0}
 };
 
