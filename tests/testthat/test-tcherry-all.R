@@ -1,20 +1,45 @@
 context("Generate all k'th order t-cherry junction trees")
 
+# test_that("2nd order t-cherry junction trees", {
+#   ms <- all_tcherries(n = 4, k = 2, remove_duplicates = TRUE)
+#   trees <- all_prufer_sequences(n = 4)
+#   expect_equal(length(ms), nrow(trees))
+#   
+#   #for (n in 3:7) {
+#   for (n in 3:6) {
+#     #https://en.wikipedia.org/wiki/Cayley%27s_formula
+#     ms <- all_tcherries(n = n, k = 2, remove_duplicates = TRUE)
+#     trees <- all_prufer_sequences(n = n)
+#     expect_equal(length(ms), nrow(trees), info = paste0("n = ", n))
+#     expect_equal(length(ms), n^(n-2), info = paste0("n = ", n))
+#   }
+# })
+
 test_that("2nd order t-cherry junction trees", {
-  ms <- remove_equal_models(all_tcherries(4, 2))
-  trees <- all_prufer_sequences(4)
+  # https://oeis.org/search?q=1%2C+3%2C+16%2C+125%2C+1296%2C+15967&language=english&go=Search
+  # Important up to 7, because that is where this is different from Cayley's formula
+  expected_ns <- c("2" = 1, 
+                   "3" = 3, 
+                   "4" = 16,
+                   "5" = 125,
+                   "6" = 1296,
+                   "7" = 15967)
   
-  expect_equal(length(ms), nrow(trees))
-  
-  for (n in 3:5) {
-    ms <- remove_equal_models(all_tcherries(n, 2))
-    trees <- all_prufer_sequences(n)
-    expect_equal(length(ms), nrow(trees), info = paste0("n = ", n))
-    expect_equal(length(ms), n^(n-2), info = paste0("n = ", n))
+  for (n in 2:7) {
+    ms <- all_tcherries(n = n, k = 2, remove_duplicates = TRUE)
+    expected_n <- expected_ns[[as.character(n)]]
+    expect_equal(length(ms), expected_n, info = paste0("n = ", n))
   }
 })
 
-test_that("all_tcherries(): R/C++", {
+test_that("k'th order t-cherry junction trees with n = k", {
+  for (n in 2:7) {
+    ms <- all_tcherries(n = n, k = n, remove_duplicates = TRUE)
+    expect_equal(length(ms), 1, info = paste0("n = ", n))
+  }
+})
+
+test_that("all_tcherries(): comparing R and C++ version", {
   configs <- list(
     list(k = 2, ns = 3:5),
     list(k = 3, ns = 3:5)
@@ -22,181 +47,93 @@ test_that("all_tcherries(): R/C++", {
   
   for (config in configs) {
     for (n in config$ns) {
-      ms_r <- all_tcherries__r(n, config$k)
-      ms_cpp <- all_tcherries__cpp(n, config$k)
+      ms_r <- all_tcherries_r(n, config$k)
+      ms_cpp <- all_tcherries_cpp_pure(n, config$k, remove_duplicates = FALSE)
       expect_equal(length(ms_r), length(ms_cpp), info = paste0("raw: n = ", n, "; k = ", config$k))
       
       um_r <- remove_equal_models(ms_r)
       um_cpp <- remove_equal_models(ms_cpp)
+      um_cpp2 <- all_tcherries_cpp_pure(n, config$k, remove_duplicates = TRUE)
       expect_equal(length(um_r), length(um_cpp), info = paste0("unique: n = ", n, "; k = ", config$k))
+      expect_equal(length(um_r), length(um_cpp2), info = paste0("unique2: n = ", n, "; k = ", config$k))
     }
   }
 })
 
-if (FALSE) {
-  ms <- all_tcherries(n = 5, k = 3)
-  length(ms)
-  
-  length(remove_equal_models___old_implementation_n2(ms))
-  length(remove_equal_models___old_implementation_strhash(ms))
-  length(remove_equal_models___rcpp(ms))
-
-  microbenchmark::microbenchmark(
-    r_n2_comp = remove_equal_models___old_implementation_n2(ms),
-    r_strhash = remove_equal_models___old_implementation_strhash(ms),
-    cpp_intvechash = remove_equal_models___rcpp(ms),
-    times = 10
-  )
-  
-  ##############
-  
-  ms <- all_tcherries(n = 6, k = 3)
-  length(remove_equal_models___old_implementation_strhash(ms))
-  length(remove_equal_models___rcpp(ms))
-  
-  microbenchmark::microbenchmark(
-    r_strhash = remove_equal_models___old_implementation_strhash(ms),
-    cpp_intvechash = remove_equal_models___rcpp(ms),
-    times = 10
-  )
-  
-  ##############
-  
-  ms <- all_tcherries(n = 7, k = 3)
-  length(ms)
-  
-  length(remove_equal_models___old_implementation_strhash(ms))
-  length(remove_equal_models___rcpp(ms))
-  
-  microbenchmark::microbenchmark(
-    r_strhash = remove_equal_models___old_implementation_strhash(ms),
-    cpp_intvechash = remove_equal_models___rcpp(ms),
-    times = 1
-  )
-}
-
-if (FALSE) {
-  r <- c()
-  for (n in 3:8) {
-    p <- n^(n-2)
-    cat("k = 2; n = ", n, "; # models = ", p, "\n")
-    r <- c(r, p)
+test_that("all_tcherries(): gives correct number of models", {
+  if (FALSE) {
+    for (k in 2:5) {
+      cat("# k = ", k, "\n", sep = "")
+      r <- c()
+      #for (n in 3:7) {
+      #for (n in k:(k+4)) {
+      for (n in k:(k+4)) {
+        if (k > n) {
+          next
+        }
+        ms <- all_tcherries(n = n, k = k)
+        p <- length(ms)
+        cat("list(k = ", k, ", n = ", n, ", expected_models = ", p, "), \n", sep = "")
+        r <- c(r, p)
+      }
+      cat("# ", paste0(r, collapse = ", "), "\n", sep = "")
+      cat("\n")
+    }
   }
-  paste0(r, collapse = ", ")
   
-  #' k = 2:
-  #' n^(n-2):
-  #' k = 2; n =  3 ; # models =  3 
-  #' k = 2; n =  4 ; # models =  16 
-  #' k = 2; n =  5 ; # models =  125 
-  #' k = 2; n =  6 ; # models =  1296 
-  #' k = 2; n =  7 ; # models =  16807 
-  #' k = 2; n =  8 ; # models =  262144 
-  #' 3, 16, 125, 1296, 16807, 262144
-  
-  for (k in 3:4) {
-  #for (k in 4) {
-    r <- c()
-    for (n in 3:7) {
+  if (FALSE) {
+    k <- 2
+    for (n in 2:8) {
       if (k > n) {
         next
       }
-      #ms <- remove_equal_models(all_tcherries(n = n, k = k))
       ms <- all_tcherries(n = n, k = k)
-      ms <- remove_equal_models(ms)
       p <- length(ms)
-      cat("k = ", k, "; n = ", n, "; # models = ", p, "\n")
+      cat("list(k = ", k, ", n = ", n, ", expected_models = ", p, "), \n", sep = "")
       r <- c(r, p)
     }
-    print(paste0(r, collapse = ", "))
+    cat("# ", paste0(r, collapse = ", "), "\n", sep = "")
+    cat("\n")
   }
   
-  #' k =  3
-  #' k =  3 ; n =  3 ; # models =  1 
-  #' k =  3 ; n =  4 ; # models =  6 
-  #' k =  3 ; n =  5 ; # models =  70 
-  #' k =  3 ; n =  6 ; # models =  1095
-  #' k =  3 ; n =  7 ; # models =  21651
-  #' 1, 6, 70, 1095, 21651
-  #' https://oeis.org found none
-  
-  length(remove_equal_models(all_tcherries(n = 7, k = 4)))
-  length(remove_equal_models(all_tcherries(n = 8, k = 4)))
-  #' k =  4:
-  #' k =  4 ; n =  4 ; # models =  1 
-  #' k =  4 ; n =  5 ; # models =  10 
-  #' k =  4 ; n =  6 ; # models =  200 
-  #' k =  4 ; n =  7 ; # models =  5075 
-  #' 1, 10, 200, 5075
-  #' https://oeis.org found none
-  #' 
-  
-  # k =  3 ; n =  3 ; # models =  1 
-  # k =  3 ; n =  4 ; # models =  8 
-  # k =  3 ; n =  5 ; # models =  76 
-  # k =  3 ; n =  6 ; # models =  881 
-  # k =  3 ; n =  7 ; # models =  11822 
-  # [1] "1, 8, 76, 881, 11822"
-  # k =  4 ; n =  4 ; # models =  1 
-  # k =  4 ; n =  5 ; # models =  13 
-  # k =  4 ; n =  6 ; # models =  203 
-  # k =  4 ; n =  7 ; # models =  3847 
-  # [1] "1, 13, 203, 3847"
-  
-  
-  ms <- all_tcherries(n = 8, k = 3)
-  length(ms)
-  ms <- all_tcherries(n = 8, k = 4)
-  length(ms)
-  
-  
-  Rprof()
-  m <- all_tcherries(n = 7, k = 3, verbose = TRUE)
-  length(m)
-  m <- remove_equal_models(m)
-  length(m)
-  Rprof(NULL)
-  summaryRprof()$by.self
-  
-  
-  Rprof()
-  m <- all_tcherries(n = 7, k = 3, verbose = TRUE)
-  length(m)
-  #m <- remove_equal_models(m)
-  #length(m)
-  Rprof(NULL)
-  summaryRprof()$by.self
-}
-
-if (FALSE) {
-  #remotes::install_github("r-prof/jointprof")
-  
-  library(jointprof)
-  out_file <- tempfile("jointprof", fileext = ".out")
-  start_profiler(out_file)
-  
-  ms_cpp <- all_tcherries__cpp(n = 6, k = 3)
-
-  profile_data <- stop_profiler()
-  
-  summary <- summaryRprof(out_file)
-  summary$by.self
-}
-
-if (FALSE) {
-  ms_r <- all_tcherries__r(n = 6, k = 3)
-  ms_cpp <- all_tcherries__cpp(n = 6, k = 3)
-  
-  length(ms_r)
-  length(ms_cpp)
-  
-  length(remove_equal_models(ms_r))
-  length(remove_equal_models(ms_cpp))
-  
-  microbenchmark::microbenchmark(
-    all_tcherries__r(n = 6, k = 3),
-    all_tcherries__cpp(n = 6, k = 3),
-    times = 10
+  configs <- list(
+    # k = 2
+    list(k = 2, n = 2, expected_models = 1), 
+    list(k = 2, n = 3, expected_models = 3), 
+    list(k = 2, n = 4, expected_models = 16), 
+    list(k = 2, n = 5, expected_models = 125), 
+    list(k = 2, n = 6, expected_models = 1296),
+    #list(k = 2, n = 7, expected_models = 15967), 
+    # 1, 3, 16, 125, 1296, 15967 
+    # https://oeis.org/search?q=1%2C+3%2C+16%2C+125%2C+1296%2C+15967&language=english&go=Search
+    
+    # k = 3
+    list(k = 3, n = 3, expected_models = 1), 
+    list(k = 3, n = 4, expected_models = 6), 
+    list(k = 3, n = 5, expected_models = 70), 
+    list(k = 3, n = 6, expected_models = 1095), 
+    #list(k = 3, n = 7, expected_models = 21651), 
+    # 1, 6, 70, 1095, 21651
+    
+    # k = 4
+    list(k = 4, n = 4, expected_models = 1), 
+    list(k = 4, n = 5, expected_models = 10), 
+    list(k = 4, n = 6, expected_models = 200), 
+    list(k = 4, n = 7, expected_models = 5075), 
+    #list(k = 4, n = 8, expected_models = 157136), 
+    # 1, 10, 200, 5075, 157136
+    
+    # k = 5
+    list(k = 5, n = 5, expected_models = 1), 
+    list(k = 5, n = 6, expected_models = 15), 
+    list(k = 5, n = 7, expected_models = 455), 
+    list(k = 5, n = 8, expected_models = 16870)#, 
+    #list(k = 5, n = 9, expected_models = 743526),
+    # 1, 15, 455, 16870, 743526
   )
-}
-
+  
+  for (config in configs) {
+    ms <- all_tcherries(n = config$n, k = config$k, remove_duplicates = TRUE)
+    expect_equal(length(ms), config$expected_models, info = paste0("n = ", config$n, "; k = ", config$k))
+  }
+})

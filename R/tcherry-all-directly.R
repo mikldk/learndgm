@@ -13,38 +13,14 @@
 #' 
 #' @export
 remove_equal_models <- function(models) {
-  #' Construct adjacency matrices and check equality by hash
+  # Construct adjacency matrices and check equality by hash
   
-  #return(remove_equal_models___rcpp(models))
-  return(remove_equal_models___old_implementation_strhash(models))
+  return(remove_equal_models_r_strhash(models))
 }
 
-remove_equal_models___rcpp <- function(models) {
-  #' Construct adjacency matrices and check equality by hash
-  
-  n <- length(models)
-  
-  if (n <= 1L) {
-    return(models)
-  }
-  
-  # Only final models
-  stopifnot(is.null(models[[1L]]$unused))
-  
-  As <- lapply(models, model_to_adjacency_matrix)
-  As_uppertri <- lapply(models, function(m) {
-    A <- model_to_adjacency_matrix(m)
-    A[upper.tri(A)]
-  })
-  
-  indices_to_keep <- rcpp_remove_equal_models_worker(As_uppertri)
-  new_models <- models[indices_to_keep]
-  
-  return(new_models)
-}
 
-remove_equal_models___old_implementation_strhash <- function(models) {
-  #' Construct adjacency matrices and check equality by hash
+remove_equal_models_r_strhash <- function(models) {
+  # Construct adjacency matrices and check equality by hash
   
   n <- length(models)
   
@@ -76,43 +52,6 @@ remove_equal_models___old_implementation_strhash <- function(models) {
   return(new_models)
 }
 
-remove_equal_models___old_implementation_n2 <- function(models) {
-  #' Construct adjacency matrices and check equality
-  
-  # FIXME: All binary n x n matrices (symmetric/upper triangular).
-  #        Nice hash function?
-  
-  n <- length(models)
-  
-  if (n <= 1L) {
-    return(models)
-  }
-  
-  # Only final models
-  stopifnot(is.null(models[[1L]]$unused))
-  
-  As <- lapply(models, model_to_adjacency_matrix)
-  
-  seen_before <- c()
-  
-  # n >= 2L, cf. above
-  for (i in 2L:n) {
-    Ai <- As[[i]]
-    
-    for (j in 1L:(i-1L)) {
-      if (isTRUE(all.equal(Ai, As[[j]]))) {
-        seen_before <- c(seen_before, i)
-        break
-      }
-    }
-  }
-  
-  if (length(seen_before) > 0L) {
-    models <- models[-seen_before]
-  }
-  
-  return(models)
-}
 
 #' Generate all k'th order t-cherry junction trees
 #'
@@ -122,12 +61,24 @@ remove_equal_models___old_implementation_n2 <- function(models) {
 #' @examples all_tcherries(4, 2)
 #'
 #' @export
-all_tcherries <- function(n, k, verbose = FALSE) {
-  return(all_tcherries__r(n = n, k = k, verbose = verbose))
+all_tcherries <- function(n, k, 
+                          remove_duplicates = TRUE,
+                          verbose = FALSE) {
+  
+  #m <- all_tcherries_r(n = n, k = k, verbose = verbose)
+  #if (remove_duplicates) {
+    #m <- remove_equal_models_r_strhash(m)
+  #}
+  
+  return(all_tcherries_cpp_pure(n = n, k = k, 
+                                remove_duplicates = remove_duplicates, 
+                                verbose = verbose))
 }
 
-#' @examples all_tcherries__cpp(3, 2)
-all_tcherries__cpp <- function(n, k, verbose = FALSE) {
+# @examples all_tcherries_cpp_pure(3, 2)
+all_tcherries_cpp_pure <- function(n, k, 
+                                   remove_duplicates = TRUE,
+                                   verbose = FALSE) {
   require_single_integer(n)
   n <- as.integer(n)
   
@@ -179,22 +130,21 @@ all_tcherries__cpp <- function(n, k, verbose = FALSE) {
     cat("Unused variables that needs to be added = ", n_unused, ".\n", sep = "")
   }
   
-  models <- rcpp_all_tcherries_worker(models = models, 
-                                      kmin1_subsets_idx = kmin1_subsets_idx, 
-                                      n_unused = n_unused,
-                                      verbose = verbose)
+  models <- rcpp_new_all_tcherries_worker(
+    models = models, 
+    kmin1_subsets_idx = kmin1_subsets_idx, 
+    n = n,
+    n_unused = n_unused,
+    verbose = verbose,
+    remove_duplicates = remove_duplicates)
   
-  # FIXME: Remove $unused entries?
-  for (i_m in seq_along(models)) {
-    stopifnot( length(models[[i_m]]$unused) == 0L )
-    models[[i_m]]$unused <- NULL
-  }
+  # $unused entries removed in Rcpp
   
   return(models)
 }
 
-#' @examples all_tcherries__r(3, 2)
-all_tcherries__r <- function(n, k, verbose = FALSE) {
+# @examples all_tcherries_r(3, 2)
+all_tcherries_r <- function(n, k, verbose = FALSE) {
   require_single_integer(n)
   n <- as.integer(n)
   
