@@ -144,6 +144,7 @@ all_tcherries_cpp_pure <- function(n, k,
                      list(
                        cliques = list(x),
                        seps = list(),
+                       parents = integer(0L),
                        unused = setdiff(var_idx, x)
                      )
                    })
@@ -211,6 +212,7 @@ all_tcherries_r <- function(n, k, verbose = FALSE) {
                      list(
                        cliques = list(x),
                        seps = list(),
+                       parents = c(NA_integer_),
                        unused = setdiff(var_idx, x)
                      )
                    })
@@ -252,12 +254,15 @@ all_tcherries_r <- function(n, k, verbose = FALSE) {
         # i_unused <- 1L
         x_unused <- m$unused[i_unused]
         
-        for (last_clique in m$cliques) {
+        for (i_parent_clique in seq_along(m$cliques)) {
+          parent_clique <- m$cliques[[i_parent_clique]]
+          
+          new_parents <- c(m$parents, i_parent_clique)
           
           for (i_sep in seq_len(ncol(kmin1_subsets_idx))) {
             # i_sep <- 1L
             sep_idx <- kmin1_subsets_idx[, i_sep]
-            sep <- last_clique[sep_idx]
+            sep <- parent_clique[sep_idx]
             
             new_clique <- c(sep, x_unused)
             
@@ -271,6 +276,7 @@ all_tcherries_r <- function(n, k, verbose = FALSE) {
               new_clique
             new_model$seps[[ length(new_model$seps) + 1L ]] <- 
               sep
+            new_model$parents <- new_parents
             new_model$unused <- m$unused[-i_unused] # setdiff(m$unused, x_unused)
             
             new_models[[ length(new_models) + 1L ]] <- new_model
@@ -286,7 +292,6 @@ all_tcherries_r <- function(n, k, verbose = FALSE) {
     models <- remove_equal_intermediate_models_r_strhash(new_models)
   }
   
-  # FIXME: Remove $unused entries?
   for (i_m in seq_along(models)) {
     stopifnot( length(models[[i_m]]$unused) == 0L )
     models[[i_m]]$unused <- NULL

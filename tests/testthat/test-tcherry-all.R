@@ -14,6 +14,35 @@ test_that("2nd order t-cherry junction trees: R/C++", {
   }
 })
 
+test_that("cliques/parents/seps", {
+  for (k in 2:4) {
+    for (n in (k+1):(k+2)) { 
+      ms_r <- remove_equal_models_r_strhash(all_tcherries_r(n = n, k = k))
+      ms_cpp <- all_tcherries_cpp_pure(n = n, k = k, remove_duplicates = TRUE)
+      
+      expect_equal(length(ms_r), length(ms_cpp), info = paste0("n = ", n, "; k = ", k))
+      
+      for (i in seq_along(ms_r)) {
+        inf_txt <- paste0("r: n = ", n, "; k = ", k, ", i = ", i)
+        
+        # Cliques
+        r_k_tmp <- unique(unlist(lapply(ms_r[[i]]$cliques, length)))
+        cpp_k_tmp <- nrow(ms_cpp[[i]]$cliques)
+        expect_equal(length(r_k_tmp), 1, info = inf_txt)
+        expect_equal(r_k_tmp, k, info = inf_txt)
+        expect_equal(cpp_k_tmp, k, info = inf_txt)
+        
+        # Seps
+        r_km1_tmp <- unique(unlist(lapply(ms_r[[i]]$seps, length)))
+        cpp_km1_tmp <- nrow(ms_cpp[[i]]$seps)
+        expect_equal(length(r_km1_tmp), 1, info = inf_txt)
+        expect_equal(r_km1_tmp, k-1L, info = inf_txt)
+        expect_equal(cpp_km1_tmp, k-1L, info = inf_txt)
+      }
+    }    
+  }
+})
+
 test_that("2nd order t-cherry junction trees: C++", {
   # 7 is important: here number of trees become different from caterpillar trees
   for (n in 3:7) { 
@@ -114,7 +143,7 @@ test_that("all_tcherries(): gives correct number of models", {
     list(k = 4, n = 5, expected_models = 10), 
     list(k = 4, n = 6, expected_models = 200), 
     list(k = 4, n = 7, expected_models = 5915), 
-    list(k = 4, n = 8, expected_models = 229376), 
+    #list(k = 4, n = 8, expected_models = 229376), 
     # 1, 10, 200, 5915, 229376
     
     # k = 5

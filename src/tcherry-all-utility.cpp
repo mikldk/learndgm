@@ -67,7 +67,7 @@ typedef std::unordered_map< std::vector<int> ,
                             std::hash< std::vector<int> >, 
                             std::equal_to_intvec > 
   adjmat_hashmap;
-  
+
 
 
 
@@ -86,14 +86,18 @@ class CherryModel {
 private:
   std::vector< std::vector<int> > m_cliques;
   std::vector< std::vector<int> > m_seps;
+  std::vector<int> m_parents;
   std::vector<int> m_unused;
   
 public:
   CherryModel(const std::vector< std::vector<int> >& cliques,
               const std::vector< std::vector<int> >& seps,
+              const std::vector<int>& parents,
               const std::vector<int>& unused) {
+    
     m_cliques = cliques;
     m_seps = seps;
+    m_parents = parents;
     m_unused = unused;
   }
   
@@ -103,6 +107,10 @@ public:
   
   const std::vector< std::vector<int> > get_seps() {
     return m_seps;
+  }
+  
+  const std::vector<int> get_parents() {
+    return m_parents; 
   }
   
   const std::vector<int> get_unused() {
@@ -124,13 +132,13 @@ std::vector<int> cliques_to_upper_tri_adj_mat(
     int n) {
   
   /*
-   * There are n variables in the model, hence 
-   * adjacency matrix is n x n.
-   * But only store in upper triagonal (as symmetric).
-   * Hence a vector of size n * (n - 1) / 2 entries
-   */
+  * There are n variables in the model, hence 
+  * adjacency matrix is n x n.
+  * But only store in upper triagonal (as symmetric).
+  * Hence a vector of size n * (n - 1) / 2 entries
+  */
   int size_upper_tri = n * (n - 1) / 2;
-
+  
   std::vector<int> upper_tri(size_upper_tri);
   
   for (auto& v : cliques) {
@@ -144,7 +152,7 @@ std::vector<int> cliques_to_upper_tri_adj_mat(
         int var2_col = v[i2] - 1; // R -> C++ indexing
         
         int index = mat_indices_to_vec_index(var1_row, var2_col, n, size_upper_tri);
-
+        
         upper_tri[index] = 1;
       }
     }
@@ -164,12 +172,12 @@ std::vector<CherryModel> rcpp_new_remove_equal_models_worker(const std::vector<C
   */
   
   adjmat_hashmap model_map;
-    
+  
   for (int i = 0; i < models.size(); ++i) {
     CherryModel m = models[i];
     
     std::vector<int> upper_tri = cliques_to_upper_tri_adj_mat(m.get_cliques(), n);
-
+    
     auto iter = model_map.find(upper_tri);
     
     if (iter == model_map.end()) {
@@ -246,10 +254,12 @@ std::vector<CherryModel> convert_models_to_cpp(const Rcpp::List& models) {
     Rcpp::List m = models[i];
     Rcpp::List cliques = m["cliques"];
     Rcpp::List seps = m["seps"];
+    Rcpp::IntegerVector parents = m["parents"];
     Rcpp::IntegerVector unused = m["unused"];
     
     std::vector< std::vector<int> > new_cliques(cliques.size());
     std::vector< std::vector<int> > new_seps(seps.size());
+    std::vector<int> new_parents = Rcpp::as< std::vector<int> >(parents);
     std::vector<int> new_unused = Rcpp::as< std::vector<int> >(unused);
     
     // Cliques
@@ -266,7 +276,7 @@ std::vector<CherryModel> convert_models_to_cpp(const Rcpp::List& models) {
       new_cliques[j] = c;
     }
     
-    CherryModel model = CherryModel(new_cliques, new_seps, new_unused);
+    CherryModel model = CherryModel(new_cliques, new_seps, new_parents, new_unused);
     ret_models.push_back(model);
   }
   
@@ -282,6 +292,7 @@ Rcpp::List convert_models_to_r(const std::vector<CherryModel>& models) {
     
     std::vector< std::vector<int> > cliques = model.get_cliques();
     std::vector< std::vector<int> > seps = model.get_seps();
+    std::vector<int> parents = model.get_parents();
     std::vector<int> unused = model.get_unused();
     
     if (unused.size() != 0) {
@@ -295,22 +306,26 @@ Rcpp::List convert_models_to_r(const std::vector<CherryModel>& models) {
       Rcpp::stop("(n_cliques - 1) != n_seps");
     }
     
+    if (parents.size() != n_seps) {
+      Rcpp::stop("parents.size() != n_seps");
+    }
+    
     /*
     Rcpp::List r_cliques(n_cliques);
     Rcpp::List r_seps(n_seps);
     
     // Cliques
     for (int j = 0; j < n_cliques; ++j) {
-      std::vector<int> v = cliques[j];
-      Rcpp::IntegerVector w = Rcpp::wrap(v);
-      r_cliques[j] = w;
+    std::vector<int> v = cliques[j];
+    Rcpp::IntegerVector w = Rcpp::wrap(v);
+    r_cliques[j] = w;
     }
     
     // Seps
     for (int j = 0; j < n_seps; ++j) {
-      std::vector<int> v = seps[j];
-      Rcpp::IntegerVector w = Rcpp::wrap(v);
-      r_seps[j] = w;
+    std::vector<int> v = seps[j];
+    Rcpp::IntegerVector w = Rcpp::wrap(v);
+    r_seps[j] = w;
     }
     */
     
@@ -331,9 +346,16 @@ Rcpp::List convert_models_to_r(const std::vector<CherryModel>& models) {
       r_seps(Rcpp::_, j) = w;
     }
     
+    Rcpp::IntegerVector r_parents(parents.size() + 1);
+    r_parents[0] = Rcpp::IntegerVector::get_na();
+    for (int i = 0; i < parents.size(); ++i) {
+      r_parents[i + 1] = parents[i]; 
+    }
+    
     Rcpp::List r_model;
     r_model["cliques"] = r_cliques;
     r_model["seps"] = r_seps;
+    r_model["parents"] = r_parents;
     ret_models[i] = r_model;
   }
   
@@ -353,7 +375,7 @@ std::vector< std::vector<int> > get_subsets(const Rcpp::IntegerMatrix& kmin1_sub
   
   return km1sets;
 }
-  
+
 //' Remove duplicate models
 //' 
 //' @export
@@ -380,11 +402,13 @@ Rcpp::List rcpp_new_all_tcherries_worker(const Rcpp::List& models,
     std::vector<CherryModel> new_models;
     
     for (int i_m = 0; i_m < ret_models.size(); ++i_m) {
+      Rcpp::checkUserInterrupt();
+        
       CherryModel model = ret_models[i_m];
       
       std::vector< std::vector<int> > cliques = model.get_cliques();
       std::vector< std::vector<int> > seps = model.get_seps();
-      //std::vector<int> last_clique = cliques.back();
+      std::vector<int> parents = model.get_parents();
       std::vector<int> unused = model.get_unused();
       
       for (int i_unused = 0; i_unused < unused.size(); ++i_unused) {
@@ -393,14 +417,18 @@ Rcpp::List rcpp_new_all_tcherries_worker(const Rcpp::List& models,
         std::vector<int> new_unused = unused;
         new_unused.erase(new_unused.begin() + i_unused);
         
-        for (auto last_clique : cliques) {
+        for (int i_parent_clique = 0; i_parent_clique < cliques.size(); ++i_parent_clique) {
+          std::vector<int> parent_clique = cliques[i_parent_clique];
+          
+          std::vector<int> new_parents = parents;
+          new_parents.push_back(i_parent_clique + 1); // R-indexing
           
           for (int i_sep = 0; i_sep < kmin1_subsets; ++i_sep) {
             // New separator
             std::vector<int> sep_idx = km1sets[i_sep];
             std::vector<int> new_sep(km1);
             for (int i_new_sep = 0; i_new_sep < km1; ++i_new_sep) {
-              new_sep[i_new_sep] = last_clique[ sep_idx[i_new_sep] ]; 
+              new_sep[i_new_sep] = parent_clique[ sep_idx[i_new_sep] ]; 
             }
             
             // New clique
@@ -414,6 +442,8 @@ Rcpp::List rcpp_new_all_tcherries_worker(const Rcpp::List& models,
             // model_to_adjacency_matrix(): A[ clique[j1], clique[j2] ]
             std::sort(new_clique.begin(), new_clique.end());
             
+            std::sort(new_sep.begin(), new_sep.end());
+            
             
             std::vector< std::vector<int> > new_cliques = cliques;
             new_cliques.push_back(new_clique);
@@ -421,8 +451,8 @@ Rcpp::List rcpp_new_all_tcherries_worker(const Rcpp::List& models,
             std::vector< std::vector<int> > new_seps = seps;
             new_seps.push_back(new_sep);
             
-            CherryModel new_model = CherryModel(new_cliques, new_seps, new_unused);
-  
+            CherryModel new_model = CherryModel(new_cliques, new_seps, new_parents, new_unused);
+            
             new_models.push_back(new_model);
           }
         }
