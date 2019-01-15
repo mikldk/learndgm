@@ -36,7 +36,7 @@ remove_equal_models_r_strhash <- function(models) {
   As_hash <- list()
   new_models <- list()
   
-  for (i in 2L:n) {
+  for (i in 1L:n) {
     Ai <- As[[i]]
     Ai_hash <- paste0(Ai[upper.tri(Ai)], collapse = ";")
     
@@ -46,6 +46,46 @@ remove_equal_models_r_strhash <- function(models) {
   
   length(As)
   length(As_hash)
+  
+  names(new_models) <- NULL
+  
+  return(new_models)
+}
+
+remove_equal_intermediate_models_r_strhash <- function(models) {
+  # Construct adjacency matrices and check equality by hash
+  
+  n <- length(models)
+  
+  if (n <= 1L) {
+    return(models)
+  }
+
+  stopifnot(is.null(models[[1L]]$unused) == FALSE)
+  
+  # Adjecency matrix and unused_variables must be equal
+  # FIXME: Separators?
+  
+  As <- lapply(models, model_to_adjacency_matrix)
+  
+  #As_hash <- list()
+  new_models <- list()
+  
+  for (i in 1L:n) {
+    Ai <- As[[i]]
+    Ai_hash <- paste0(Ai[upper.tri(Ai)], collapse = ";")
+    unused_hash <- paste0(models[[i]]$unused, collapse = ",")
+    #print(unused_hash)
+    
+    model_hash <- paste0(Ai_hash, "/", unused_hash)
+    #print(model_hash)
+    
+    #As_hash[[ Ai_hash ]] <- Ai
+    new_models[[ model_hash ]] <- models[[i]]
+  }
+  
+  #length(As)
+  #length(As_hash)
   
   names(new_models) <- NULL
   
@@ -208,32 +248,33 @@ all_tcherries_r <- function(n, k, verbose = FALSE) {
       #i_m <- 1L
       m <- models[[i_m]]
       
-      last_clique <- m$cliques[[ length(m$cliques) ]]
-      
       for (i_unused in seq_along(m$unused)) {
         # i_unused <- 1L
         x_unused <- m$unused[i_unused]
         
-        for (i_sep in seq_len(ncol(kmin1_subsets_idx))) {
-          # i_sep <- 1L
-          sep_idx <- kmin1_subsets_idx[, i_sep]
-          sep <- last_clique[sep_idx]
+        for (last_clique in m$cliques) {
           
-          new_clique <- c(sep, x_unused)
-          
-          # sort for comparing (removing duplicates) later in:
-          # model_to_adjacency_matrix(): A[ clique[j1], clique[j2] ]
-          new_clique <- sort(new_clique)
-          sep <- sort(sep)
-          
-          new_model <- m
-          new_model$cliques[[ length(new_model$cliques) + 1L ]] <- 
-            new_clique
-          new_model$seps[[ length(new_model$seps) + 1L ]] <- 
-            sep
-          new_model$unused <- m$unused[-i_unused] # setdiff(m$unused, x_unused)
-          
-          new_models[[ length(new_models) + 1L ]] <- new_model
+          for (i_sep in seq_len(ncol(kmin1_subsets_idx))) {
+            # i_sep <- 1L
+            sep_idx <- kmin1_subsets_idx[, i_sep]
+            sep <- last_clique[sep_idx]
+            
+            new_clique <- c(sep, x_unused)
+            
+            # sort for comparing (removing duplicates) later in:
+            # model_to_adjacency_matrix(): A[ clique[j1], clique[j2] ]
+            new_clique <- sort(new_clique)
+            sep <- sort(sep)
+            
+            new_model <- m
+            new_model$cliques[[ length(new_model$cliques) + 1L ]] <- 
+              new_clique
+            new_model$seps[[ length(new_model$seps) + 1L ]] <- 
+              sep
+            new_model$unused <- m$unused[-i_unused] # setdiff(m$unused, x_unused)
+            
+            new_models[[ length(new_models) + 1L ]] <- new_model
+          }
         }
       }
     }
@@ -241,7 +282,8 @@ all_tcherries_r <- function(n, k, verbose = FALSE) {
     # FIXME: Some of these models may be equivalant! Remove?
     # How to check equivalence now?
     
-    models <- new_models
+    #models <- new_models
+    models <- remove_equal_intermediate_models_r_strhash(new_models)
   }
   
   # FIXME: Remove $unused entries?
@@ -264,9 +306,11 @@ all_tcherries_r <- function(n, k, verbose = FALSE) {
 #' @export
 model_to_adjacency_matrix <- function(model) {
   # Only final models
-  stopifnot(is.null(model$unused))
+  #stopifnot(is.null(model$unused))
   
-  n <- length( unique(unlist(model$cliques)) )
+  #n <- length( unique(unlist(model$cliques)) )
+  n <- length( unique(c(unlist(model$cliques), model$unused) ))
+  #print(n)
   A <- matrix(0L, nrow = n, ncol = n)
   
   for (i in seq_along(model$cliques)) {

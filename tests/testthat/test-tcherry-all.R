@@ -1,34 +1,28 @@
 context("Generate all k'th order t-cherry junction trees")
 
-# test_that("2nd order t-cherry junction trees", {
-#   ms <- all_tcherries(n = 4, k = 2, remove_duplicates = TRUE)
-#   trees <- all_prufer_sequences(n = 4)
-#   expect_equal(length(ms), nrow(trees))
-#   
-#   #for (n in 3:7) {
-#   for (n in 3:6) {
-#     #https://en.wikipedia.org/wiki/Cayley%27s_formula
-#     ms <- all_tcherries(n = n, k = 2, remove_duplicates = TRUE)
-#     trees <- all_prufer_sequences(n = n)
-#     expect_equal(length(ms), nrow(trees), info = paste0("n = ", n))
-#     expect_equal(length(ms), n^(n-2), info = paste0("n = ", n))
-#   }
-# })
+test_that("2nd order t-cherry junction trees: R/C++", {
+  #for (n in 3:7) {
+  for (n in 3:5) {
+    #https://en.wikipedia.org/wiki/Cayley%27s_formula
+    #ms <- all_tcherries(n = n, k = 2, remove_duplicates = TRUE)
+    ms_r <- remove_equal_models_r_strhash(all_tcherries_r(n = n, k = 2))
+    ms_cpp <- all_tcherries_cpp_pure(n = n, k = 2, remove_duplicates = TRUE)
+    trees <- all_prufer_sequences(n = n)
+    expect_equal(length(ms_r), length(ms_cpp), info = paste0("n = ", n))
+    expect_equal(length(ms_r), nrow(trees), info = paste0("n = ", n))
+    expect_equal(length(ms_r), n^(n-2), info = paste0("n = ", n))
+  }
+})
 
-test_that("2nd order t-cherry junction trees", {
-  # https://oeis.org/search?q=1%2C+3%2C+16%2C+125%2C+1296%2C+15967&language=english&go=Search
-  # Important up to 7, because that is where this is different from Cayley's formula
-  expected_ns <- c("2" = 1, 
-                   "3" = 3, 
-                   "4" = 16,
-                   "5" = 125,
-                   "6" = 1296,
-                   "7" = 15967)
-  
-  for (n in 2:7) {
-    ms <- all_tcherries(n = n, k = 2, remove_duplicates = TRUE)
-    expected_n <- expected_ns[[as.character(n)]]
-    expect_equal(length(ms), expected_n, info = paste0("n = ", n))
+test_that("2nd order t-cherry junction trees: C++", {
+  # 7 is important: here number of trees become different from caterpillar trees
+  for (n in 3:7) { 
+    ms_std <- all_tcherries(n = n, k = 2, remove_duplicates = TRUE)
+    ms_cpp <- all_tcherries_cpp_pure(n = n, k = 2, remove_duplicates = TRUE)
+    trees <- all_prufer_sequences(n = n)
+    expect_equal(length(ms_std), length(ms_cpp), info = paste0("n = ", n))
+    expect_equal(length(ms_cpp), nrow(trees), info = paste0("n = ", n))
+    expect_equal(length(ms_cpp), n^(n-2), info = paste0("n = ", n))
   }
 })
 
@@ -47,15 +41,9 @@ test_that("all_tcherries(): comparing R and C++ version", {
   
   for (config in configs) {
     for (n in config$ns) {
-      ms_r <- all_tcherries_r(n, config$k)
-      ms_cpp <- all_tcherries_cpp_pure(n, config$k, remove_duplicates = FALSE)
+      ms_r <- remove_equal_models(all_tcherries_r(n, config$k))
+      ms_cpp <- all_tcherries_cpp_pure(n, config$k, remove_duplicates = TRUE)
       expect_equal(length(ms_r), length(ms_cpp), info = paste0("raw: n = ", n, "; k = ", config$k))
-      
-      um_r <- remove_equal_models(ms_r)
-      um_cpp <- remove_equal_models(ms_cpp)
-      um_cpp2 <- all_tcherries_cpp_pure(n, config$k, remove_duplicates = TRUE)
-      expect_equal(length(um_r), length(um_cpp), info = paste0("unique: n = ", n, "; k = ", config$k))
-      expect_equal(length(um_r), length(um_cpp2), info = paste0("unique2: n = ", n, "; k = ", config$k))
     }
   }
 })
@@ -67,7 +55,13 @@ test_that("all_tcherries(): gives correct number of models", {
       r <- c()
       #for (n in 3:7) {
       #for (n in k:(k+4)) {
-      for (n in k:(k+4)) {
+      ns <- k:(k+4)
+      
+      if (k == 2L) {
+        ns <- 2L:8L
+      }
+      
+      for (n in ns) {
         if (k > n) {
           next
         }
@@ -103,33 +97,33 @@ test_that("all_tcherries(): gives correct number of models", {
     list(k = 2, n = 4, expected_models = 16), 
     list(k = 2, n = 5, expected_models = 125), 
     list(k = 2, n = 6, expected_models = 1296),
-    #list(k = 2, n = 7, expected_models = 15967), 
-    # 1, 3, 16, 125, 1296, 15967 
-    # https://oeis.org/search?q=1%2C+3%2C+16%2C+125%2C+1296%2C+15967&language=english&go=Search
+    list(k = 2, n = 7, expected_models = 16807),
+    #list(k = 2, n = 8, expected_models = 262144), 
+    # 1, 3, 16, 125, 1296, 16807, 262144
     
     # k = 3
     list(k = 3, n = 3, expected_models = 1), 
     list(k = 3, n = 4, expected_models = 6), 
     list(k = 3, n = 5, expected_models = 70), 
-    list(k = 3, n = 6, expected_models = 1095), 
-    #list(k = 3, n = 7, expected_models = 21651), 
-    # 1, 6, 70, 1095, 21651
+    list(k = 3, n = 6, expected_models = 1215), 
+    list(k = 3, n = 7, expected_models = 27951), 
+    # 1, 6, 70, 1215, 27951
     
     # k = 4
     list(k = 4, n = 4, expected_models = 1), 
     list(k = 4, n = 5, expected_models = 10), 
     list(k = 4, n = 6, expected_models = 200), 
-    list(k = 4, n = 7, expected_models = 5075), 
-    #list(k = 4, n = 8, expected_models = 157136), 
-    # 1, 10, 200, 5075, 157136
+    list(k = 4, n = 7, expected_models = 5915), 
+    list(k = 4, n = 8, expected_models = 229376), 
+    # 1, 10, 200, 5915, 229376
     
     # k = 5
     list(k = 5, n = 5, expected_models = 1), 
     list(k = 5, n = 6, expected_models = 15), 
     list(k = 5, n = 7, expected_models = 455), 
-    list(k = 5, n = 8, expected_models = 16870)#, 
-    #list(k = 5, n = 9, expected_models = 743526),
-    # 1, 15, 455, 16870, 743526
+    list(k = 5, n = 8, expected_models = 20230)
+    #list(k = 5, n = 9, expected_models = 1166886)
+    # 1, 15, 455, 20230, 1166886
   )
   
   for (config in configs) {

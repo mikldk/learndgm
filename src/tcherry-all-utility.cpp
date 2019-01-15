@@ -188,6 +188,55 @@ std::vector<CherryModel> rcpp_new_remove_equal_models_worker(const std::vector<C
   return new_models;
 }
 
+// @param n Number of variables in the model, used for size of adjacency matrix
+std::vector<CherryModel> rcpp_new_remove_equal_intermediatemodels_worker(
+    const std::vector<CherryModel>& models,
+    int n) {
+  
+  /* Saves the index of the model with a given hash.
+  * Models with same hash not all saved, but that's fine
+  * as they are equal. 
+  * Hence, when done, values of this map are the indices of 
+  * the models to keep.
+  */
+  
+  adjmat_hashmap model_map;
+  
+  for (int i = 0; i < models.size(); ++i) {
+    CherryModel m = models[i];
+    
+    // seps?
+    // Are unused at all necessary?
+    std::vector<int> upper_tri = cliques_to_upper_tri_adj_mat(m.get_cliques(), n);
+    std::vector<int> unused = m.get_unused();
+    std::vector<int> model_hashvec;
+    model_hashvec.reserve(upper_tri.size() + unused.size());
+    
+    for (int v : upper_tri) {
+      model_hashvec.push_back(v);
+    }
+    for (int v : unused) {
+      model_hashvec.push_back(v);
+    }
+    
+    auto iter = model_map.find(model_hashvec);
+    
+    if (iter == model_map.end()) {
+      auto pair = std::pair< std::vector<int>, int >{model_hashvec, i};
+      model_map.insert(pair);
+    }
+  }
+  
+  std::vector<CherryModel> new_models;
+  new_models.reserve(model_map.size());
+  
+  for (auto& v : model_map) {
+    new_models.push_back(models[v.second]);
+  }
+  
+  return new_models;
+}
+
 
 std::vector<CherryModel> convert_models_to_cpp(const Rcpp::List& models) {
   std::vector<CherryModel> ret_models;
@@ -335,7 +384,7 @@ Rcpp::List rcpp_new_all_tcherries_worker(const Rcpp::List& models,
       
       std::vector< std::vector<int> > cliques = model.get_cliques();
       std::vector< std::vector<int> > seps = model.get_seps();
-      std::vector<int> last_clique = cliques.back();
+      //std::vector<int> last_clique = cliques.back();
       std::vector<int> unused = model.get_unused();
       
       for (int i_unused = 0; i_unused < unused.size(); ++i_unused) {
@@ -344,40 +393,44 @@ Rcpp::List rcpp_new_all_tcherries_worker(const Rcpp::List& models,
         std::vector<int> new_unused = unused;
         new_unused.erase(new_unused.begin() + i_unused);
         
-        for (int i_sep = 0; i_sep < kmin1_subsets; ++i_sep) {
-          // New separator
-          std::vector<int> sep_idx = km1sets[i_sep];
-          std::vector<int> new_sep(km1);
-          for (int i_new_sep = 0; i_new_sep < km1; ++i_new_sep) {
-            new_sep[i_new_sep] = last_clique[ sep_idx[i_new_sep] ]; 
+        for (auto last_clique : cliques) {
+          
+          for (int i_sep = 0; i_sep < kmin1_subsets; ++i_sep) {
+            // New separator
+            std::vector<int> sep_idx = km1sets[i_sep];
+            std::vector<int> new_sep(km1);
+            for (int i_new_sep = 0; i_new_sep < km1; ++i_new_sep) {
+              new_sep[i_new_sep] = last_clique[ sep_idx[i_new_sep] ]; 
+            }
+            
+            // New clique
+            std::vector<int> new_clique(k);
+            for (int tmp_i = 0; tmp_i < km1; ++tmp_i) {
+              new_clique[tmp_i] = new_sep[tmp_i];
+            }
+            new_clique[km1] = x_unused;
+            
+            // sort for comparing (removing duplicates) later in:
+            // model_to_adjacency_matrix(): A[ clique[j1], clique[j2] ]
+            std::sort(new_clique.begin(), new_clique.end());
+            
+            
+            std::vector< std::vector<int> > new_cliques = cliques;
+            new_cliques.push_back(new_clique);
+            
+            std::vector< std::vector<int> > new_seps = seps;
+            new_seps.push_back(new_sep);
+            
+            CherryModel new_model = CherryModel(new_cliques, new_seps, new_unused);
+  
+            new_models.push_back(new_model);
           }
-          
-          // New clique
-          std::vector<int> new_clique(k);
-          for (int tmp_i = 0; tmp_i < km1; ++tmp_i) {
-            new_clique[tmp_i] = new_sep[tmp_i];
-          }
-          new_clique[km1] = x_unused;
-          
-          // sort for comparing (removing duplicates) later in:
-          // model_to_adjacency_matrix(): A[ clique[j1], clique[j2] ]
-          std::sort(new_clique.begin(), new_clique.end());
-          
-          
-          std::vector< std::vector<int> > new_cliques = cliques;
-          new_cliques.push_back(new_clique);
-          
-          std::vector< std::vector<int> > new_seps = seps;
-          new_seps.push_back(new_sep);
-          
-          CherryModel new_model = CherryModel(new_cliques, new_seps, new_unused);
-
-          new_models.push_back(new_model);
         }
       }
     }
     
-    ret_models = new_models;
+    //ret_models = new_models;
+    ret_models = rcpp_new_remove_equal_intermediatemodels_worker(new_models, n);
   }
   
   if (remove_duplicates) {
