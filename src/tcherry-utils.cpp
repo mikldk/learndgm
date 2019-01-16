@@ -125,8 +125,7 @@ Rcpp::List convert_final_models_to_r(const std::vector<CherryModelUnused>& model
 
 
 
-std::vector<CherryModelMI> annotate_models_with_MI_cpp(const Rcpp::List& models, 
-                                                       const Rcpp::CharacterMatrix data) {
+std::vector<CherryModelMI> convert_models_to_cpp_for_MI(const Rcpp::List& models) {
   
   std::vector<CherryModelMI> ret_models;
   ret_models.reserve(models.size());
@@ -239,4 +238,83 @@ Rcpp::List convert_models_to_r(const std::vector<CherryModelUnused>& models) {
   }
   
   return ret_models;
+}
+
+
+Rcpp::List convert_final_MI_models_to_r(const std::vector<CherryModelMI>& models,
+                                        const int n,
+                                        const int k) {
+  int n_models = models.size();
+  Rcpp::List ret_models(n_models);
+  
+  for (int i = 0; i < n_models; ++i) {
+    CherryModelMI model = models[i];
+    
+    std::vector< std::vector<int> > cliques = model.get_cliques();
+    std::vector< std::vector<int> > seps = model.get_seps();
+    std::vector<int> parents = model.get_parents();
+    std::vector<double> cliques_mi = model.get_cliques_mi();
+    std::vector<double> seps_mi = model.get_seps_mi();
+    
+    int n_cliques = cliques.size();
+    int n_seps = seps.size();
+    
+    if ((n_cliques - 1) != n_seps) {
+      Rcpp::stop("(n_cliques - 1) != n_seps");
+    }
+    
+    if (parents.size() != n_seps) {
+      Rcpp::stop("parents.size() != n_seps");
+    }
+    
+    Rcpp::IntegerMatrix r_cliques(cliques[0].size(), n_cliques);
+    Rcpp::IntegerMatrix r_seps(cliques[0].size() - 1, n_seps);
+    
+    // Cliques
+    for (int j = 0; j < n_cliques; ++j) {
+      std::vector<int> v = cliques[j];
+      Rcpp::IntegerVector w = Rcpp::wrap(v);
+      r_cliques(Rcpp::_, j) = w;
+    }
+    
+    // Seps
+    for (int j = 0; j < n_seps; ++j) {
+      std::vector<int> v = seps[j];
+      Rcpp::IntegerVector w = Rcpp::wrap(v);
+      r_seps(Rcpp::_, j) = w;
+    }
+    
+    Rcpp::IntegerVector r_parents(parents.size() + 1);
+    r_parents[0] = Rcpp::IntegerVector::get_na();
+    for (int i = 0; i < parents.size(); ++i) {
+      r_parents[i + 1] = parents[i]; 
+    }
+    
+    
+    Rcpp::IntegerVector r_cliques_mi = Rcpp::wrap(cliques_mi);
+    Rcpp::IntegerVector r_seps_mi = Rcpp::wrap(seps_mi);
+    
+    Rcpp::List r_model;
+    r_model["cliques"] = r_cliques;
+    r_model["seps"] = r_seps;
+    r_model["parents"] = r_parents;
+    r_model["cliques_mi"] = r_cliques_mi;
+    r_model["seps_mi"] = r_seps_mi;
+    ret_models[i] = r_model;
+  }
+  
+  Rcpp::List ret;
+  ret["models"] = ret_models;
+  ret["n"] = n;
+  ret["k"] = k;
+  ret["method"] = "C++";
+  
+  // FIXME: S3 class hierachy?
+  
+  ret.attr("class") = Rcpp::CharacterVector::create(
+    "learndgm_mimodelstructure_list", 
+    "learndgm_modelstructure_list",
+    "list");
+  
+  return ret;
 }

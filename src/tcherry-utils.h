@@ -14,7 +14,11 @@ Rcpp::List convert_final_models_to_r(const std::vector<CherryModelUnused>& model
                                      const int n, 
                                      const int k);
 
-// FIXME: Templated function?
-std::vector<CherryModelMI> convert_models_to_MI_cpp(const Rcpp::List& models);
+// FIXME: Templated functions? 
+std::vector<CherryModelMI> convert_models_to_cpp_for_MI(const Rcpp::List& models);
+Rcpp::List convert_final_MI_models_to_r(const std::vector<CherryModelMI>& models, 
+                                        const int n, 
+                                        const int k);
+
 
 #endif
