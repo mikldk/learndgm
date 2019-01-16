@@ -1,37 +1,37 @@
-#' Remove entries that give the same model
-#' 
-#' Currently by constructing adjacency matrix and 
-#' checking equality.
-#' 
-#' Only models that are finished.
-#' 
-#' @param models List of models, e.g. from [all_tcherries()]
-#' 
-#' @examples 
-#' m <- all_tcherries(4, 2)
-#' remove_equal_models(m)
-#' 
-#' @export
-remove_equal_models <- function(models) {
+# Remove entries that give the same model
+# 
+# Currently by constructing adjacency matrix and 
+# checking equality.
+# 
+# Only models that are finished.
+# 
+# @param models List of models, e.g. from [all_tcherries()]
+# 
+# @examples 
+# m <- all_tcherries(4, 2)
+# remove_equal_models(m)
+.remove_equal_models <- function(models) {
   # Construct adjacency matrices and check equality by hash
   
-  return(remove_equal_models_r_strhash(models))
+  return(.remove_equal_models_r_strhash(models))
 }
 
 
-remove_equal_models_r_strhash <- function(models) {
-  # Construct adjacency matrices and check equality by hash
+.remove_equal_models_r_strhash <- function(modellist) {
+  stopifnot(is(modellist, "learndgm_modelstructure_list"))
   
+  # Construct adjacency matrices and check equality by hash
+  models <- modellist$models
   n <- length(models)
   
   if (n <= 1L) {
-    return(models)
+    return(modellist)
   }
   
   # Only final models
   stopifnot(is.null(models[[1L]]$unused))
   
-  As <- lapply(models, model_to_adjacency_matrix)
+  As <- lapply(models, .model_to_adjacency_matrix_r)
   
   As_hash <- list()
   new_models <- list()
@@ -49,10 +49,12 @@ remove_equal_models_r_strhash <- function(models) {
   
   names(new_models) <- NULL
   
-  return(new_models)
+  modellist$models <- new_models
+  
+  return(modellist)
 }
 
-remove_equal_intermediate_models_r_strhash <- function(models) {
+.remove_equal_intermediate_models_r_strhash <- function(models) {
   # Construct adjacency matrices and check equality by hash
   
   n <- length(models)
@@ -66,7 +68,7 @@ remove_equal_intermediate_models_r_strhash <- function(models) {
   # Adjecency matrix and unused_variables must be equal
   # FIXME: Separators?
   
-  As <- lapply(models, model_to_adjacency_matrix)
+  As <- lapply(models, .model_to_adjacency_matrix_r)
   
   #As_hash <- list()
   new_models <- list()
@@ -97,27 +99,20 @@ remove_equal_intermediate_models_r_strhash <- function(models) {
 #'
 #' @param n Number of variables
 #' @param k Order of t-cherry junction tree (clique size)
+#' @param verbose Verbose output
 #'
 #' @examples all_tcherries(4, 2)
 #'
 #' @export
 all_tcherries <- function(n, k, 
-                          remove_duplicates = TRUE,
                           verbose = FALSE) {
   
-  #m <- all_tcherries_r(n = n, k = k, verbose = verbose)
-  #if (remove_duplicates) {
-    #m <- remove_equal_models_r_strhash(m)
-  #}
-  
   return(all_tcherries_cpp_pure(n = n, k = k, 
-                                remove_duplicates = remove_duplicates, 
                                 verbose = verbose))
 }
 
 # @examples all_tcherries_cpp_pure(3, 2)
 all_tcherries_cpp_pure <- function(n, k, 
-                                   remove_duplicates = TRUE,
                                    verbose = FALSE) {
   require_single_integer(n)
   n <- as.integer(n)
@@ -155,12 +150,12 @@ all_tcherries_cpp_pure <- function(n, k,
     cat("All initial ", ncol(first_cliques_mat), " cliques created.\n", sep = "")
   }
   
-  #' Now, extend by this strategy:
-  #' 
-  #' With RIP (running intersection property) in mind,
-  #' Take last clique of size k and take all (k-1) subsets
-  #' together with each of of the unused variables, hence
-  #' there are choose(k, k-1)*length(unused) new possibilities
+  # Now, extend by this strategy:
+  # 
+  # With RIP (running intersection property) in mind,
+  # Take last clique of size k and take all (k-1) subsets
+  # together with each of of the unused variables, hence
+  # there are choose(k, k-1)*length(unused) new possibilities
   kmin1_subsets_idx <- combn(k, k - 1L)
   
   # All candidate models always have the same number of
@@ -172,12 +167,11 @@ all_tcherries_cpp_pure <- function(n, k,
   }
   
   models <- rcpp_new_all_tcherries_worker(
-    models = models, 
+    initial_models = models, 
     kmin1_subsets_idx = kmin1_subsets_idx, 
     n = n,
     n_unused = n_unused,
-    verbose = verbose,
-    remove_duplicates = remove_duplicates)
+    verbose = verbose)
   
   # $unused entries removed in Rcpp
   
@@ -185,7 +179,7 @@ all_tcherries_cpp_pure <- function(n, k,
 }
 
 # @examples all_tcherries_r(3, 2)
-all_tcherries_r <- function(n, k, verbose = FALSE) {
+.all_tcherries_r <- function(n, k, verbose = FALSE) {
   require_single_integer(n)
   n <- as.integer(n)
   
@@ -289,7 +283,7 @@ all_tcherries_r <- function(n, k, verbose = FALSE) {
     # How to check equivalence now?
     
     #models <- new_models
-    models <- remove_equal_intermediate_models_r_strhash(new_models)
+    models <- .remove_equal_intermediate_models_r_strhash(new_models)
   }
   
   for (i_m in seq_along(models)) {
@@ -297,14 +291,23 @@ all_tcherries_r <- function(n, k, verbose = FALSE) {
     models[[i_m]]$unused <- NULL
   }
   
-  return(models)
+  ret <- list(
+    models = models,
+    n = n, 
+    k = k,
+    method = "R"
+  )
+  class(ret) <- c("learndgm_modelstructure_list", "list")
+  
+  return(ret)
 }
 
 
 #' Model to adjacency matrix
 #' 
 #' @examples 
-#' m <- all_tcherries(c("A", "B", "C", "D"), 2)
+#' modellist <- all_tcherries(4, 2)
+#' m <- modellist$models
 #' model_to_adjacency_matrix( m[[1]] )
 #' model_to_adjacency_matrix( m[[2]] )
 #' 
@@ -314,7 +317,48 @@ model_to_adjacency_matrix <- function(model) {
   #stopifnot(is.null(model$unused))
   
   #n <- length( unique(unlist(model$cliques)) )
-  n <- length( unique(c(unlist(model$cliques), model$unused) ))
+  vars <- c(model$cliques)
+  
+  if (!is.null(model$unused)) {
+    vars <- c(vars, model$unused)
+  }
+  
+  n <- length(unique(vars))
+  #print(n)
+  A <- matrix(0L, nrow = n, ncol = n)
+  
+  for (i in seq_len(ncol(model$cliques))) {
+    clique <- model$cliques[, i, drop = TRUE]
+    k <- length(clique)
+    
+    for (j1 in seq_len(k - 1L)) {
+      for (j2 in (j1 + 1L):k) {
+        
+        # Sorted: Important for A[ clique[j1], clique[j2] ]
+        A[ clique[j1], clique[j2] ] <- 1L
+      }
+    }
+  }
+  
+  return(A)
+}
+
+
+# Model to adjacency matrix
+# for when cliques etc. are lists (from R)
+# instead as matrices as from C++
+.model_to_adjacency_matrix_r <- function(model) {
+  # Only final models
+  #stopifnot(is.null(model$unused))
+  
+  vars <- unlist(model$cliques)
+  
+  if (!is.null(model$unused)) {
+    vars <- c(vars, model$unused)
+  }
+  
+  n <- length(unique(vars))
+  
   #print(n)
   A <- matrix(0L, nrow = n, ncol = n)
   
@@ -336,3 +380,8 @@ model_to_adjacency_matrix <- function(model) {
 
 
 
+print.learndgm_modelstructure_list <- function(x, ...) {
+  cat(length(x$models), " t-cherry models of order k = ", x$k, 
+      " on n = ", x$n, " variables\n", sep = "")
+  return(invisible(x))
+}

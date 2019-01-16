@@ -4,37 +4,38 @@ test_that("2nd order t-cherry junction trees: R/C++", {
   #for (n in 3:7) {
   for (n in 3:5) {
     #https://en.wikipedia.org/wiki/Cayley%27s_formula
-    #ms <- all_tcherries(n = n, k = 2, remove_duplicates = TRUE)
-    ms_r <- remove_equal_models_r_strhash(all_tcherries_r(n = n, k = 2))
-    ms_cpp <- all_tcherries_cpp_pure(n = n, k = 2, remove_duplicates = TRUE)
+    #ms <- all_tcherries(n = n, k = 2)
+    ms_r <- .remove_equal_models_r_strhash(.all_tcherries_r(n = n, k = 2))
+    ms_cpp <- all_tcherries_cpp_pure(n = n, k = 2)
     trees <- all_prufer_sequences(n = n)
-    expect_equal(length(ms_r), length(ms_cpp), info = paste0("n = ", n))
-    expect_equal(length(ms_r), nrow(trees), info = paste0("n = ", n))
-    expect_equal(length(ms_r), n^(n-2), info = paste0("n = ", n))
+    expect_equal(length(ms_r$models), length(ms_cpp$models), info = paste0("n = ", n))
+    expect_equal(length(ms_r$models), nrow(trees), info = paste0("n = ", n))
+    expect_equal(length(ms_r$models), n^(n-2), info = paste0("n = ", n))
   }
 })
 
 test_that("cliques/parents/seps", {
   for (k in 2:4) {
     for (n in (k+1):(k+2)) { 
-      ms_r <- remove_equal_models_r_strhash(all_tcherries_r(n = n, k = k))
-      ms_cpp <- all_tcherries_cpp_pure(n = n, k = k, remove_duplicates = TRUE)
+      ms_r <- .remove_equal_models_r_strhash(.all_tcherries_r(n = n, k = k))
+      ms_cpp <- all_tcherries_cpp_pure(n = n, k = k)
       
-      expect_equal(length(ms_r), length(ms_cpp), info = paste0("n = ", n, "; k = ", k))
+      expect_equal(length(ms_r$models), length(ms_cpp$models), 
+                   info = paste0("n = ", n, "; k = ", k))
       
-      for (i in seq_along(ms_r)) {
+      for (i in seq_along(ms_r$models)) {
         inf_txt <- paste0("r: n = ", n, "; k = ", k, ", i = ", i)
         
         # Cliques
-        r_k_tmp <- unique(unlist(lapply(ms_r[[i]]$cliques, length)))
-        cpp_k_tmp <- nrow(ms_cpp[[i]]$cliques)
+        r_k_tmp <- unique(unlist(lapply(ms_r$models[[i]]$cliques, length)))
+        cpp_k_tmp <- nrow(ms_cpp$models[[i]]$cliques)
         expect_equal(length(r_k_tmp), 1, info = inf_txt)
         expect_equal(r_k_tmp, k, info = inf_txt)
         expect_equal(cpp_k_tmp, k, info = inf_txt)
         
         # Seps
-        r_km1_tmp <- unique(unlist(lapply(ms_r[[i]]$seps, length)))
-        cpp_km1_tmp <- nrow(ms_cpp[[i]]$seps)
+        r_km1_tmp <- unique(unlist(lapply(ms_r$models[[i]]$seps, length)))
+        cpp_km1_tmp <- nrow(ms_cpp$models[[i]]$seps)
         expect_equal(length(r_km1_tmp), 1, info = inf_txt)
         expect_equal(r_km1_tmp, k-1L, info = inf_txt)
         expect_equal(cpp_km1_tmp, k-1L, info = inf_txt)
@@ -46,19 +47,19 @@ test_that("cliques/parents/seps", {
 test_that("2nd order t-cherry junction trees: C++", {
   # 7 is important: here number of trees become different from caterpillar trees
   for (n in 3:7) { 
-    ms_std <- all_tcherries(n = n, k = 2, remove_duplicates = TRUE)
-    ms_cpp <- all_tcherries_cpp_pure(n = n, k = 2, remove_duplicates = TRUE)
+    ms_std <- all_tcherries(n = n, k = 2)
+    ms_cpp <- all_tcherries_cpp_pure(n = n, k = 2)
     trees <- all_prufer_sequences(n = n)
-    expect_equal(length(ms_std), length(ms_cpp), info = paste0("n = ", n))
-    expect_equal(length(ms_cpp), nrow(trees), info = paste0("n = ", n))
-    expect_equal(length(ms_cpp), n^(n-2), info = paste0("n = ", n))
+    expect_equal(length(ms_std$models), length(ms_cpp$models), info = paste0("n = ", n))
+    expect_equal(length(ms_cpp$models), nrow(trees), info = paste0("n = ", n))
+    expect_equal(length(ms_cpp$models), n^(n-2), info = paste0("n = ", n))
   }
 })
 
 test_that("k'th order t-cherry junction trees with n = k", {
   for (n in 2:7) {
-    ms <- all_tcherries(n = n, k = n, remove_duplicates = TRUE)
-    expect_equal(length(ms), 1, info = paste0("n = ", n))
+    ms <- all_tcherries(n = n, k = n)
+    expect_equal(length(ms$models), 1, info = paste0("n = ", n))
   }
 })
 
@@ -70,9 +71,10 @@ test_that("all_tcherries(): comparing R and C++ version", {
   
   for (config in configs) {
     for (n in config$ns) {
-      ms_r <- remove_equal_models(all_tcherries_r(n, config$k))
-      ms_cpp <- all_tcherries_cpp_pure(n, config$k, remove_duplicates = TRUE)
-      expect_equal(length(ms_r), length(ms_cpp), info = paste0("raw: n = ", n, "; k = ", config$k))
+      ms_r <- .remove_equal_models(.all_tcherries_r(n, config$k))
+      ms_cpp <- all_tcherries_cpp_pure(n, config$k)
+      expect_equal(length(ms_r$models), length(ms_cpp$models), 
+                   info = paste0("raw: n = ", n, "; k = ", config$k))
     }
   }
 })
@@ -95,7 +97,7 @@ test_that("all_tcherries(): gives correct number of models", {
           next
         }
         ms <- all_tcherries(n = n, k = k)
-        p <- length(ms)
+        p <- length(ms$models)
         cat("list(k = ", k, ", n = ", n, ", expected_models = ", p, "), \n", sep = "")
         r <- c(r, p)
       }
@@ -111,7 +113,7 @@ test_that("all_tcherries(): gives correct number of models", {
         next
       }
       ms <- all_tcherries(n = n, k = k)
-      p <- length(ms)
+      p <- length(ms$models)
       cat("list(k = ", k, ", n = ", n, ", expected_models = ", p, "), \n", sep = "")
       r <- c(r, p)
     }
@@ -156,7 +158,8 @@ test_that("all_tcherries(): gives correct number of models", {
   )
   
   for (config in configs) {
-    ms <- all_tcherries(n = config$n, k = config$k, remove_duplicates = TRUE)
-    expect_equal(length(ms), config$expected_models, info = paste0("n = ", config$n, "; k = ", config$k))
+    ms <- all_tcherries(n = config$n, k = config$k)
+    expect_equal(length(ms$models), config$expected_models, 
+                 info = paste0("n = ", config$n, "; k = ", config$k))
   }
 })

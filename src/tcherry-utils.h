@@ -9,8 +9,10 @@
 
 #include "class_CherryModel.h"
 
-std::vector<CherryModelUnused> convert_models_to_cpp(const Rcpp::List& models);
-Rcpp::List convert_models_to_r(const std::vector<CherryModelUnused>& models);
+std::vector<CherryModelUnused> convert_initial_models_to_cpp(const Rcpp::List& models);
+Rcpp::List convert_final_models_to_r(const std::vector<CherryModelUnused>& models, 
+                                     const int n, 
+                                     const int k);
 
 // FIXME: Templated function?
 std::vector<CherryModelMI> convert_models_to_MI_cpp(const Rcpp::List& models);

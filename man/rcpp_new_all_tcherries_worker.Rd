@@ -4,8 +4,8 @@
 \alias{rcpp_new_all_tcherries_worker}
 \title{Remove duplicate models}
 \usage{
-rcpp_new_all_tcherries_worker(models, kmin1_subsets_idx, n, n_unused,
-  verbose, remove_duplicates)
+rcpp_new_all_tcherries_worker(initial_models, kmin1_subsets_idx, n,
+  n_unused, verbose)
 }
 \description{
 Remove duplicate models

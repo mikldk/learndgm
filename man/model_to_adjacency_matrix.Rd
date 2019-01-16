@@ -10,7 +10,8 @@ model_to_adjacency_matrix(model)
 Model to adjacency matrix
 }
 \examples{
-m <- all_tcherries(c("A", "B", "C", "D"), 2)
+modellist <- all_tcherries(4, 2)
+m <- modellist$models
 model_to_adjacency_matrix( m[[1]] )
 model_to_adjacency_matrix( m[[2]] )
 

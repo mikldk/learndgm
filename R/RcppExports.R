@@ -15,7 +15,7 @@ mat_indices_to_vec_index <- function(row, column, n, size_upper_tri) {
 #' Remove duplicate models
 #' 
 #' @export
-rcpp_new_all_tcherries_worker <- function(models, kmin1_subsets_idx, n, n_unused, verbose, remove_duplicates) {
-    .Call('_learndgm_rcpp_new_all_tcherries_worker', PACKAGE = 'learndgm', models, kmin1_subsets_idx, n, n_unused, verbose, remove_duplicates)
+rcpp_new_all_tcherries_worker <- function(initial_models, kmin1_subsets_idx, n, n_unused, verbose) {
+    .Call('_learndgm_rcpp_new_all_tcherries_worker', PACKAGE = 'learndgm', initial_models, kmin1_subsets_idx, n, n_unused, verbose)
 }
 

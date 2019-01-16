@@ -4,12 +4,14 @@
 \alias{all_tcherries}
 \title{Generate all k'th order t-cherry junction trees}
 \usage{
-all_tcherries(n, k, remove_duplicates = TRUE, verbose = FALSE)
+all_tcherries(n, k, verbose = FALSE)
 }
 \arguments{
 \item{n}{Number of variables}
 
 \item{k}{Order of t-cherry junction tree (clique size)}
+
+\item{verbose}{Verbose output}
 }
 \description{
 Generate all k'th order t-cherry junction trees

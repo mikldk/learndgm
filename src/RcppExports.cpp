@@ -31,18 +31,17 @@ BEGIN_RCPP
 END_RCPP
 }
 // rcpp_new_all_tcherries_worker
-Rcpp::List rcpp_new_all_tcherries_worker(const Rcpp::List& models, const Rcpp::IntegerMatrix& kmin1_subsets_idx, int n, int n_unused, bool verbose, bool remove_duplicates);
-RcppExport SEXP _learndgm_rcpp_new_all_tcherries_worker(SEXP modelsSEXP, SEXP kmin1_subsets_idxSEXP, SEXP nSEXP, SEXP n_unusedSEXP, SEXP verboseSEXP, SEXP remove_duplicatesSEXP) {
+Rcpp::List rcpp_new_all_tcherries_worker(const Rcpp::List& initial_models, const Rcpp::IntegerMatrix& kmin1_subsets_idx, int n, int n_unused, bool verbose);
+RcppExport SEXP _learndgm_rcpp_new_all_tcherries_worker(SEXP initial_modelsSEXP, SEXP kmin1_subsets_idxSEXP, SEXP nSEXP, SEXP n_unusedSEXP, SEXP verboseSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< const Rcpp::List& >::type models(modelsSEXP);
+    Rcpp::traits::input_parameter< const Rcpp::List& >::type initial_models(initial_modelsSEXP);
     Rcpp::traits::input_parameter< const Rcpp::IntegerMatrix& >::type kmin1_subsets_idx(kmin1_subsets_idxSEXP);
     Rcpp::traits::input_parameter< int >::type n(nSEXP);
     Rcpp::traits::input_parameter< int >::type n_unused(n_unusedSEXP);
     Rcpp::traits::input_parameter< bool >::type verbose(verboseSEXP);
-    Rcpp::traits::input_parameter< bool >::type remove_duplicates(remove_duplicatesSEXP);
-    rcpp_result_gen = Rcpp::wrap(rcpp_new_all_tcherries_worker(models, kmin1_subsets_idx, n, n_unused, verbose, remove_duplicates));
+    rcpp_result_gen = Rcpp::wrap(rcpp_new_all_tcherries_worker(initial_models, kmin1_subsets_idx, n, n_unused, verbose));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -50,7 +49,7 @@ END_RCPP
 static const R_CallMethodDef CallEntries[] = {
     {"_learndgm_prufer_to_adjacency_matrix", (DL_FUNC) &_learndgm_prufer_to_adjacency_matrix, 1},
     {"_learndgm_mat_indices_to_vec_index", (DL_FUNC) &_learndgm_mat_indices_to_vec_index, 4},
-    {"_learndgm_rcpp_new_all_tcherries_worker", (DL_FUNC) &_learndgm_rcpp_new_all_tcherries_worker, 6},
+    {"_learndgm_rcpp_new_all_tcherries_worker", (DL_FUNC) &_learndgm_rcpp_new_all_tcherries_worker, 5},
     {NULL, NULL, 0}
 };
 

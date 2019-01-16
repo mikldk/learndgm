@@ -158,14 +158,13 @@ std::vector< std::vector<int> > get_subsets(const Rcpp::IntegerMatrix& kmin1_sub
 //' 
 //' @export
 // [[Rcpp::export]]
-Rcpp::List rcpp_new_all_tcherries_worker(const Rcpp::List& models, 
+Rcpp::List rcpp_new_all_tcherries_worker(const Rcpp::List& initial_models, 
                                          const Rcpp::IntegerMatrix& kmin1_subsets_idx, 
                                          int n,
                                          int n_unused,
-                                         bool verbose, 
-                                         bool remove_duplicates) {
+                                         bool verbose) {
   
-  std::vector<CherryModelUnused> ret_models = convert_models_to_cpp(models);
+  std::vector<CherryModelUnused> ret_models = convert_initial_models_to_cpp(initial_models);
   
   int km1 = kmin1_subsets_idx.nrow();
   int k = km1 + 1;
@@ -238,14 +237,14 @@ Rcpp::List rcpp_new_all_tcherries_worker(const Rcpp::List& models,
     }
     
     //ret_models = new_models;
+    // remove_duplicates
     ret_models = rcpp_new_remove_equal_intermediatemodels_worker(new_models, n);
   }
   
-  if (remove_duplicates) {
-    ret_models = rcpp_new_remove_equal_models_worker(ret_models, n);
-  }
+  // remove_duplicates
+  ret_models = rcpp_new_remove_equal_models_worker(ret_models, n);
   
-  Rcpp::List r_ret_models = convert_models_to_r(ret_models);
+  Rcpp::List r_ret_models = convert_final_models_to_r(ret_models, n, k);
   
   return r_ret_models;
 }
