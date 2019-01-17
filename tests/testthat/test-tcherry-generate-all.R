@@ -79,7 +79,7 @@ test_that("all_tcherries(): comparing R and C++ version", {
   }
 })
 
-test_that("all_tcherries(): gives correct number of models", {
+test_that("all_tcherries(): gives correct number of models -- manual", {
   if (FALSE) {
     for (k in 2:5) {
       cat("# k = ", k, "\n", sep = "")
@@ -121,16 +121,23 @@ test_that("all_tcherries(): gives correct number of models", {
     cat("\n")
   }
   
+  if (FALSE) {
+    ms <- all_tcherries(n = 8, k = 3)
+    p <- length(ms$models)
+    cat("list(k = 3, n = 8, expected_models = ", p, "), \n", sep = "")
+  }
+  
   configs <- list(
     # k = 2
     list(k = 2, n = 2, expected_models = 1), 
     list(k = 2, n = 3, expected_models = 3), 
     list(k = 2, n = 4, expected_models = 16), 
     list(k = 2, n = 5, expected_models = 125), 
-    list(k = 2, n = 6, expected_models = 1296),
-    list(k = 2, n = 7, expected_models = 16807),
+    list(k = 2, n = 6, expected_models = 1296), 
+    list(k = 2, n = 7, expected_models = 16807), 
     #list(k = 2, n = 8, expected_models = 262144), 
     # 1, 3, 16, 125, 1296, 16807, 262144
+    # https://oeis.org/A000272
     
     # k = 3
     list(k = 3, n = 3, expected_models = 1), 
@@ -138,7 +145,9 @@ test_that("all_tcherries(): gives correct number of models", {
     list(k = 3, n = 5, expected_models = 70), 
     list(k = 3, n = 6, expected_models = 1215), 
     list(k = 3, n = 7, expected_models = 27951), 
-    # 1, 6, 70, 1215, 27951
+    #list(k = 3, n = 8, expected_models = 799708),
+    # 1, 6, 70, 1215, 27951, 799708
+    # https://oeis.org/A036361 : Number of labeled 2-trees with n nodes. 
     
     # k = 4
     list(k = 4, n = 4, expected_models = 1), 
@@ -147,6 +156,7 @@ test_that("all_tcherries(): gives correct number of models", {
     list(k = 4, n = 7, expected_models = 5915), 
     #list(k = 4, n = 8, expected_models = 229376), 
     # 1, 10, 200, 5915, 229376
+    # https://oeis.org/A036362 : Number of labeled 3-trees with n nodes.
     
     # k = 5
     list(k = 5, n = 5, expected_models = 1), 
@@ -155,11 +165,35 @@ test_that("all_tcherries(): gives correct number of models", {
     list(k = 5, n = 8, expected_models = 20230)
     #list(k = 5, n = 9, expected_models = 1166886)
     # 1, 15, 455, 20230, 1166886
+    # https://oeis.org/A036506 : Number of labeled 4-trees with n nodes.
   )
   
   for (config in configs) {
     ms <- all_tcherries(n = config$n, k = config$k)
     expect_equal(length(ms$models), config$expected_models, 
                  info = paste0("n = ", config$n, "; k = ", config$k))
+  }
+})
+
+test_that("all_tcherries(): gives correct number of models -- automatic", {
+  for (k in 2L:5L) {
+    n <- k
+    
+    repeat {
+      exp_n <- expected_num_cherrytrees(k = k, n = n)
+
+      if (exp_n > 1e5) {
+        break
+      }
+      
+      #cat("k = ", k, ", n = ", n, ", expected_models = ", exp_n, ", \n", sep = "")
+      
+      ms <- all_tcherries(n = n, k = k)
+      obs_n <- length(ms$models)
+      
+      expect_equal(obs_n, exp_n, info = paste0("n = ", n, "; k = ", k))
+      
+      n <- n + 1L
+    }
   }
 })
