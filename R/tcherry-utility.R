@@ -29,3 +29,28 @@ if (FALSE) {
     geom_point() + 
     geom_line()
 }
+
+if (FALSE) {
+  d <- NULL
+  
+  for (k in 2L:5L) {
+    n <- k
+    
+    repeat {
+      exp_n <- expected_num_cherrytrees(k = k, n = n)
+
+      if (exp_n > 1e6) {
+        break
+      }
+      
+      tm <- system.time(ms <- all_tcherries(n = n, k = k))
+      obs_n <- length(ms$models)
+      
+      d <- rbind(d, data.frame(k = k, n = n, no_models = exp_n, time_sec = as.numeric(tm["user.self"])))
+      
+      n <- n + 1L
+    }
+  }
+  
+  print.data.frame(d, row.names = FALSE)
+}
