@@ -8,14 +8,18 @@ prufer_to_adjacency_matrix <- function(prufer) {
     .Call('_learndgm_prufer_to_adjacency_matrix', PACKAGE = 'learndgm', prufer)
 }
 
-mat_indices_to_vec_index <- function(row, column, n, size_upper_tri) {
-    .Call('_learndgm_mat_indices_to_vec_index', PACKAGE = 'learndgm', row, column, n, size_upper_tri)
-}
-
 #' Remove duplicate models
 #' 
 #' @export
 rcpp_new_all_tcherries_worker <- function(initial_models, kmin1_subsets_idx, n, n_unused, verbose) {
     .Call('_learndgm_rcpp_new_all_tcherries_worker', PACKAGE = 'learndgm', initial_models, kmin1_subsets_idx, n, n_unused, verbose)
+}
+
+mat_indices_to_vec_index <- function(row, column, n, size_upper_tri) {
+    .Call('_learndgm_mat_indices_to_vec_index', PACKAGE = 'learndgm', row, column, n, size_upper_tri)
+}
+
+find_model_index <- function(models_haystack, cliques_needle) {
+    .Call('_learndgm_find_model_index', PACKAGE = 'learndgm', models_haystack, cliques_needle)
 }
 

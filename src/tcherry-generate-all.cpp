@@ -8,48 +8,6 @@
 #include "class_CherryModel.h"
 #include "tcherry-utils.h"
 
-// [[Rcpp::export]]
-int mat_indices_to_vec_index(int row, int column, int n, int size_upper_tri) {
-  // Upper triangular: row <= column
-  
-  // https://stackoverflow.com/a/27088560
-  // k = (n*(n-1)/2) - (n-i)*((n-i)-1)/2 + j - i - 1
-  return size_upper_tri - (n - row)*((n - row) - 1)/2 + column - row - 1;
-}
-
-std::vector<int> cliques_to_upper_tri_adj_mat(
-    const std::vector< std::vector<int> >& cliques,
-    int n) {
-  
-  /*
-  * There are n variables in the model, hence 
-  * adjacency matrix is n x n.
-  * But only store in upper triagonal (as symmetric).
-  * Hence a vector of size n * (n - 1) / 2 entries
-  */
-  int size_upper_tri = n * (n - 1) / 2;
-  
-  std::vector<int> upper_tri(size_upper_tri);
-  
-  for (auto& v : cliques) {
-    int clique_size = v.size();
-    
-    // Cliques are sorted; v[i1] <= v[i2], gives upper triangular
-    for (int i1 = 0; i1 < (clique_size - 1); ++i1) {
-      int var1_row = v[i1] - 1; // R -> C++ indexing
-      
-      for (int i2 = i1 + 1; i2 < clique_size; ++i2) {
-        int var2_col = v[i2] - 1; // R -> C++ indexing
-        
-        int index = mat_indices_to_vec_index(var1_row, var2_col, n, size_upper_tri);
-        
-        upper_tri[index] = 1;
-      }
-    }
-  }
-  
-  return upper_tri;
-}
 
 // @param n Number of variables in the model, used for size of adjacency matrix
 std::vector<CherryModelUnused> rcpp_new_remove_equal_models_worker(

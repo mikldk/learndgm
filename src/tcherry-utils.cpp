@@ -6,6 +6,101 @@
 
 #include "class_CherryModel.h"
 
+
+// [[Rcpp::export]]
+int mat_indices_to_vec_index(int row, int column, int n, int size_upper_tri) {
+  // Upper triangular: row <= column
+  
+  // https://stackoverflow.com/a/27088560
+  // k = (n*(n-1)/2) - (n-i)*((n-i)-1)/2 + j - i - 1
+  return size_upper_tri - (n - row)*((n - row) - 1)/2 + column - row - 1;
+}
+
+std::vector<int> cliques_to_upper_tri_adj_mat(
+    const std::vector< std::vector<int> >& cliques,
+    int n) {
+  
+  /*
+  * There are n variables in the model, hence 
+  * adjacency matrix is n x n.
+  * But only store in upper triagonal (as symmetric).
+  * Hence a vector of size n * (n - 1) / 2 entries
+  */
+  int size_upper_tri = n * (n - 1) / 2;
+  
+  std::vector<int> upper_tri(size_upper_tri);
+  
+  for (auto& v : cliques) {
+    int clique_size = v.size();
+    
+    // Cliques are sorted; v[i1] <= v[i2], gives upper triangular
+    for (int i1 = 0; i1 < (clique_size - 1); ++i1) {
+      int var1_row = v[i1] - 1; // R -> C++ indexing
+      
+      for (int i2 = i1 + 1; i2 < clique_size; ++i2) {
+        int var2_col = v[i2] - 1; // R -> C++ indexing
+        
+        int index = mat_indices_to_vec_index(var1_row, var2_col, n, size_upper_tri);
+        
+        upper_tri[index] = 1;
+      }
+    }
+  }
+  
+  return upper_tri;
+}
+
+///////////////////////////////////////////////
+
+// FIXME: IntegerMatrix cliques?
+std::vector< std::vector<int> > r_list_to_vector_vector(const Rcpp::List& r_cliques) {
+  std::vector< std::vector<int> > cliques(r_cliques.size());
+  
+  // Cliques
+  for (int j = 0; j < r_cliques.size(); ++j) {
+    Rcpp::IntegerVector cj = r_cliques[j];
+    std::vector<int> c = Rcpp::as< std::vector<int> >(cj);
+    cliques[j] = c;
+  }
+  
+  return cliques;
+}
+
+///////////////////////////////////////////////
+
+// [[Rcpp::export]]
+Rcpp::IntegerVector find_model_index(const Rcpp::List& models_haystack, const Rcpp::List& cliques_needle) {
+  if (!(Rf_inherits(models_haystack, "learndgm_modelstructure_list") || 
+        Rf_inherits(models_haystack, "learndgm_mimodelstructure_list"))) {
+    Rcpp::stop("models_haystack must be a learndgm_modelstructure_list or a learndgm_mimodelstructure_list");
+  }
+  
+  int n = models_haystack["n"];
+  
+  std::vector<int> needle = cliques_to_upper_tri_adj_mat(
+    r_list_to_vector_vector(cliques_needle), n);
+  
+  for (int i = 0; i < models_haystack.size(); ++i) {
+    Rcpp::List m = models_haystack[i];
+    Rcpp::List r_cliques = m["cliques"];
+    std::vector< std::vector<int> > cliques = r_list_to_vector_vector(r_cliques);
+    std::vector<int> upper_tri = cliques_to_upper_tri_adj_mat(cliques, n);
+    
+    // FIXME: equal_to_intvec
+    if (needle.size() == upper_tri.size() && needle == upper_tri) {
+      Rcpp::IntegerVector ret(1);
+      ret[0] = i + 1; // R-based index
+      return ret;
+    }
+  }
+  
+  Rcpp::IntegerVector ret(1);
+  ret[0] = Rcpp::IntegerVector::get_na();
+  return ret;
+}
+
+///////////////////////////////////////////////
+
 std::vector<CherryModelUnused> convert_initial_models_to_cpp(const Rcpp::List& models) {
   std::vector<CherryModelUnused> ret_models;
   ret_models.reserve(models.size());
@@ -17,24 +112,10 @@ std::vector<CherryModelUnused> convert_initial_models_to_cpp(const Rcpp::List& m
     Rcpp::IntegerVector parents = m["parents"];
     Rcpp::IntegerVector unused = m["unused"];
     
-    std::vector< std::vector<int> > new_cliques(cliques.size());
-    std::vector< std::vector<int> > new_seps(seps.size());
+    std::vector< std::vector<int> > new_cliques = r_list_to_vector_vector(cliques);
+    std::vector< std::vector<int> > new_seps = r_list_to_vector_vector(seps);
     std::vector<int> new_parents = Rcpp::as< std::vector<int> >(parents);
     std::vector<int> new_unused = Rcpp::as< std::vector<int> >(unused);
-    
-    // Cliques
-    for (int j = 0; j < cliques.size(); ++j) {
-      Rcpp::IntegerVector cj = cliques[j];
-      std::vector<int> c = Rcpp::as< std::vector<int> >(cj);
-      new_cliques[j] = c;
-    }
-    
-    // Seps
-    for (int j = 0; j < cliques.size(); ++j) {
-      Rcpp::IntegerVector cj = cliques[j];
-      std::vector<int> c = Rcpp::as< std::vector<int> >(cj);
-      new_cliques[j] = c;
-    }
     
     CherryModelUnused model = CherryModelUnused(new_cliques, new_seps, new_parents, new_unused);
     ret_models.push_back(model);
