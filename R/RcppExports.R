@@ -15,6 +15,10 @@ rcpp_new_all_tcherries_worker <- function(initial_models, kmin1_subsets_idx, n, 
     .Call('_learndgm_rcpp_new_all_tcherries_worker', PACKAGE = 'learndgm', initial_models, kmin1_subsets_idx, n, n_unused, verbose)
 }
 
+cpp_annotate_mi <- function(modellist, d) {
+    .Call('_learndgm_cpp_annotate_mi', PACKAGE = 'learndgm', modellist, d)
+}
+
 mat_indices_to_vec_index <- function(row, column, n, size_upper_tri) {
     .Call('_learndgm_mat_indices_to_vec_index', PACKAGE = 'learndgm', row, column, n, size_upper_tri)
 }

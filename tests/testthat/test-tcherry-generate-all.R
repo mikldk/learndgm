@@ -45,7 +45,6 @@ test_that("cliques/parents/seps", {
 })
 
 test_that("2nd order t-cherry junction trees: C++", {
-  # 7 is important: here number of trees become different from caterpillar trees
   for (n in 3:7) { 
     ms_std <- all_tcherries(n = n, k = 2)
     ms_cpp <- all_tcherries_cpp_pure(n = n, k = 2)

@@ -113,13 +113,20 @@ double mutual_information_cached(const Rcpp::IntegerMatrix& d,
   return I;
 }
 
+// [[Rcpp::export]]
 Rcpp::List cpp_annotate_mi(const Rcpp::List& modellist, 
-                           const int n,
-                           const int k,
                            const Rcpp::IntegerMatrix& d) {
   
-  // FIXME: Check class learndgm_modelstructure_list
-  // FIXME: Check that modellist["models"] exists (not null)
+  if (!(Rf_inherits(modellist, "learndgm_modelstructure_list"))) {
+    Rcpp::stop("modellist must be a learndgm_modelstructure_list");
+  }
+  
+  if (Rf_inherits(modellist, "learndgm_mimodelstructure_list")) {
+    Rcpp::stop("modellist cannot already be a learndgm_mimodelstructure_list");
+  }
+  
+  int n = modellist["n"];
+  int k = modellist["k"];
   
   std::vector<CherryModelMI> models = convert_models_to_cpp_for_MI(modellist["models"]);
 
@@ -135,6 +142,7 @@ Rcpp::List cpp_annotate_mi(const Rcpp::List& modellist,
       double mi = mutual_information_cached(d, v, mi_table);
       cliques_mi.push_back(mi);
     }
+    //Rcpp::print(Rcpp::wrap(cliques_mi));
     models[i].set_cliques_mi(cliques_mi);
     
     std::vector<double> seps_mi;

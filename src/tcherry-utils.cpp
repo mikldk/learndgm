@@ -213,26 +213,26 @@ std::vector<CherryModelMI> convert_models_to_cpp_for_MI(const Rcpp::List& models
   
   for (int i = 0; i < models.size(); ++i) {
     Rcpp::List m = models[i];
-    Rcpp::List cliques = m["cliques"];
-    Rcpp::List seps = m["seps"];
+    Rcpp::IntegerMatrix cliques = m["cliques"];
+    Rcpp::IntegerMatrix seps = m["seps"];
     Rcpp::IntegerVector parents = m["parents"];
     
-    std::vector< std::vector<int> > new_cliques(cliques.size());
-    std::vector< std::vector<int> > new_seps(seps.size());
+    std::vector< std::vector<int> > new_cliques(cliques.ncol());
+    std::vector< std::vector<int> > new_seps(seps.ncol());
     std::vector<int> new_parents = Rcpp::as< std::vector<int> >(parents);
     
     // Cliques
-    for (int j = 0; j < cliques.size(); ++j) {
-      Rcpp::IntegerVector cj = cliques[j];
+    for (int j = 0; j < cliques.ncol(); ++j) {
+      Rcpp::IntegerVector cj = cliques(Rcpp::_, j);
       std::vector<int> c = Rcpp::as< std::vector<int> >(cj);
       new_cliques[j] = c;
     }
     
     // Seps
-    for (int j = 0; j < cliques.size(); ++j) {
-      Rcpp::IntegerVector cj = cliques[j];
+    for (int j = 0; j < seps.ncol(); ++j) {
+      Rcpp::IntegerVector cj = seps(Rcpp::_, j);
       std::vector<int> c = Rcpp::as< std::vector<int> >(cj);
-      new_cliques[j] = c;
+      new_seps[j] = c;
     }
     
     CherryModelMI model = CherryModelMI(new_cliques, new_seps, new_parents);
@@ -341,11 +341,15 @@ Rcpp::List convert_final_MI_models_to_r(const std::vector<CherryModelMI>& models
     int n_seps = seps.size();
     
     if ((n_cliques - 1) != n_seps) {
-      Rcpp::stop("(n_cliques - 1) != n_seps");
+      Rcpp::Rcout << "n_cliques = " << n_cliques << "; n_seps = " << n_seps << std::endl;
+      Rcpp::stop("MI: (n_cliques - 1) != n_seps");
     }
     
-    if (parents.size() != n_seps) {
-      Rcpp::stop("parents.size() != n_seps");
+    // Now parents are of size cliques as the first is NA
+    if (parents.size() != n_cliques) {
+      Rcpp::print(Rcpp::wrap(parents));
+      Rcpp::Rcout << "parents.size() = " << parents.size() << "; n_seps = " << n_seps << std::endl;
+      Rcpp::stop("MI: parents.size() != n_cliques");
     }
     
     Rcpp::IntegerMatrix r_cliques(cliques[0].size(), n_cliques);
@@ -365,15 +369,17 @@ Rcpp::List convert_final_MI_models_to_r(const std::vector<CherryModelMI>& models
       r_seps(Rcpp::_, j) = w;
     }
     
-    Rcpp::IntegerVector r_parents(parents.size() + 1);
-    r_parents[0] = Rcpp::IntegerVector::get_na();
-    for (int i = 0; i < parents.size(); ++i) {
-      r_parents[i + 1] = parents[i]; 
+    // Parents already has NA in first
+    Rcpp::IntegerVector r_parents = Rcpp::wrap(parents);
+    if (r_parents.size() > 0) {
+      if (!Rcpp::IntegerVector::is_na(r_parents[0])) {
+        Rcpp::stop("Expected NA in first");
+      }
     }
+
     
-    
-    Rcpp::IntegerVector r_cliques_mi = Rcpp::wrap(cliques_mi);
-    Rcpp::IntegerVector r_seps_mi = Rcpp::wrap(seps_mi);
+    Rcpp::NumericVector r_cliques_mi = Rcpp::wrap(cliques_mi);
+    Rcpp::NumericVector r_seps_mi = Rcpp::wrap(seps_mi);
     
     Rcpp::List r_model;
     r_model["cliques"] = r_cliques;
