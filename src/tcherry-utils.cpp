@@ -356,8 +356,6 @@ Rcpp::List convert_final_MI_models_to_r(const std::vector<CherryModelMI>& models
     Rcpp::IntegerMatrix r_cliques(cliques[0].size(), n_cliques);
     Rcpp::IntegerMatrix r_seps(cliques[0].size() - 1, n_seps);
     
-    double model_mi = 0.0;
-    
     // Cliques
     for (int j = 0; j < n_cliques; ++j) {
       std::vector<int> v = cliques[j];
@@ -384,7 +382,7 @@ Rcpp::List convert_final_MI_models_to_r(const std::vector<CherryModelMI>& models
     Rcpp::NumericVector r_cliques_mi = Rcpp::wrap(cliques_mi);
     Rcpp::NumericVector r_seps_mi = Rcpp::wrap(seps_mi);
     
-    model_mi += std::accumulate(cliques_mi.begin(), cliques_mi.end(), 0.0);
+    double model_mi = std::accumulate(cliques_mi.begin(), cliques_mi.end(), 0.0);
     model_mi -= std::accumulate(seps_mi.begin(), seps_mi.end(), 0.0);
     
     Rcpp::List r_model;

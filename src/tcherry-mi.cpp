@@ -97,7 +97,6 @@ double mutual_information_internal(
 double mutual_information_cached(const Rcpp::IntegerMatrix& d, 
                                  const std::vector<int>& cols, 
                                  hashmap_mutual_info& mi_table) {
-  
   auto search = mi_table.find(cols);
   
   if (search != mi_table.end()) {
@@ -106,8 +105,11 @@ double mutual_information_cached(const Rcpp::IntegerMatrix& d,
   
   // Counts NOT found
   
-  double I = mutual_information_internal(d, cols);
-  
+  // Convert to C's 0-based indexing
+  std::vector<int> cols_0_based(cols);
+  std::for_each(cols_0_based.begin(), cols_0_based.end(), [](int& d) { d -= 1; });
+  double I = mutual_information_internal(d, cols_0_based);
+
   mi_table[cols] = I;
   
   return I;
@@ -141,17 +143,16 @@ Rcpp::List annotate_with_MI(const Rcpp::List& modellist,
     
     std::vector<double> cliques_mi;
     cliques_mi.reserve(cliques.size());
-    for (auto& v : cliques) {
-      double mi = mutual_information_cached(d, v, mi_table);
+    for (auto& cols : cliques) {
+      double mi = mutual_information_cached(d, cols, mi_table);
       cliques_mi.push_back(mi);
     }
-    //Rcpp::print(Rcpp::wrap(cliques_mi));
     models[i].set_cliques_mi(cliques_mi);
     
     std::vector<double> seps_mi;
     seps_mi.reserve(seps.size());
-    for (auto& v : seps) {
-      double mi = mutual_information_cached(d, v, mi_table);
+    for (auto& cols : seps) {
+      double mi = mutual_information_cached(d, cols, mi_table);
       seps_mi.push_back(mi);
     }
     models[i].set_seps_mi(seps_mi);
