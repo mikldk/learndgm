@@ -31,15 +31,15 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
-// cpp_annotate_mi
-Rcpp::List cpp_annotate_mi(const Rcpp::List& modellist, const Rcpp::IntegerMatrix& d);
-RcppExport SEXP _learndgm_cpp_annotate_mi(SEXP modellistSEXP, SEXP dSEXP) {
+// annotate_with_MI
+Rcpp::List annotate_with_MI(const Rcpp::List& modellist, const Rcpp::IntegerMatrix& d);
+RcppExport SEXP _learndgm_annotate_with_MI(SEXP modellistSEXP, SEXP dSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
     Rcpp::traits::input_parameter< const Rcpp::List& >::type modellist(modellistSEXP);
     Rcpp::traits::input_parameter< const Rcpp::IntegerMatrix& >::type d(dSEXP);
-    rcpp_result_gen = Rcpp::wrap(cpp_annotate_mi(modellist, d));
+    rcpp_result_gen = Rcpp::wrap(annotate_with_MI(modellist, d));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -73,7 +73,7 @@ END_RCPP
 static const R_CallMethodDef CallEntries[] = {
     {"_learndgm_prufer_to_adjacency_matrix", (DL_FUNC) &_learndgm_prufer_to_adjacency_matrix, 1},
     {"_learndgm_rcpp_new_all_tcherries_worker", (DL_FUNC) &_learndgm_rcpp_new_all_tcherries_worker, 5},
-    {"_learndgm_cpp_annotate_mi", (DL_FUNC) &_learndgm_cpp_annotate_mi, 2},
+    {"_learndgm_annotate_with_MI", (DL_FUNC) &_learndgm_annotate_with_MI, 2},
     {"_learndgm_mat_indices_to_vec_index", (DL_FUNC) &_learndgm_mat_indices_to_vec_index, 4},
     {"_learndgm_find_model_index", (DL_FUNC) &_learndgm_find_model_index, 2},
     {NULL, NULL, 0}

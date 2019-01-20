@@ -113,9 +113,12 @@ double mutual_information_cached(const Rcpp::IntegerMatrix& d,
   return I;
 }
 
+//' Annotate model list with mutual information
+//' 
+//' @export
 // [[Rcpp::export]]
-Rcpp::List cpp_annotate_mi(const Rcpp::List& modellist, 
-                           const Rcpp::IntegerMatrix& d) {
+Rcpp::List annotate_with_MI(const Rcpp::List& modellist, 
+                            const Rcpp::IntegerMatrix& d) {
   
   if (!(Rf_inherits(modellist, "learndgm_modelstructure_list"))) {
     Rcpp::stop("modellist must be a learndgm_modelstructure_list");

@@ -2,6 +2,7 @@
 
 export(all_prufer_sequences)
 export(all_tcherries)
+export(annotate_with_MI)
 export(model_to_adjacency_matrix)
 export(prufer_sequences_as_graphs)
 export(prufer_to_adjacency_matrix)
