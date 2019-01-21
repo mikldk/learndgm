@@ -17,6 +17,7 @@ std::vector<int> cliques_to_upper_tri_adj_mat(
     int n);
 
 std::vector< std::vector<int> > r_list_to_vector_vector(const Rcpp::List& r_cliques);
+std::vector< std::vector<int> > r_matrix_to_vector_vector(const Rcpp::IntegerMatrix& r_cliques);
 
 //////////////////
 

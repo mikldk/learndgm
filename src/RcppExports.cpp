@@ -58,13 +58,13 @@ BEGIN_RCPP
 END_RCPP
 }
 // find_model_index
-Rcpp::IntegerVector find_model_index(const Rcpp::List& models_haystack, const Rcpp::List& cliques_needle);
+Rcpp::IntegerVector find_model_index(const Rcpp::List& models_haystack, const Rcpp::IntegerMatrix& cliques_needle);
 RcppExport SEXP _learndgm_find_model_index(SEXP models_haystackSEXP, SEXP cliques_needleSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
     Rcpp::traits::input_parameter< const Rcpp::List& >::type models_haystack(models_haystackSEXP);
-    Rcpp::traits::input_parameter< const Rcpp::List& >::type cliques_needle(cliques_needleSEXP);
+    Rcpp::traits::input_parameter< const Rcpp::IntegerMatrix& >::type cliques_needle(cliques_needleSEXP);
     rcpp_result_gen = Rcpp::wrap(find_model_index(models_haystack, cliques_needle));
     return rcpp_result_gen;
 END_RCPP

@@ -52,7 +52,6 @@ std::vector<int> cliques_to_upper_tri_adj_mat(
 
 ///////////////////////////////////////////////
 
-// FIXME: IntegerMatrix cliques?
 std::vector< std::vector<int> > r_list_to_vector_vector(const Rcpp::List& r_cliques) {
   std::vector< std::vector<int> > cliques(r_cliques.size());
   
@@ -66,10 +65,26 @@ std::vector< std::vector<int> > r_list_to_vector_vector(const Rcpp::List& r_cliq
   return cliques;
 }
 
+// Each clique is stored column-wise
+std::vector< std::vector<int> > r_matrix_to_vector_vector(const Rcpp::IntegerMatrix& r_cliques) {
+  std::vector< std::vector<int> > cliques(r_cliques.ncol());
+  
+  // Cliques
+  for (int j = 0; j < r_cliques.ncol(); ++j) {
+    Rcpp::IntegerVector cj = r_cliques(Rcpp::_, j);
+    std::vector<int> c = Rcpp::as< std::vector<int> >(cj);
+    cliques[j] = c;
+  }
+  
+  return cliques;
+}
+
 ///////////////////////////////////////////////
 
 // [[Rcpp::export]]
-Rcpp::IntegerVector find_model_index(const Rcpp::List& models_haystack, const Rcpp::List& cliques_needle) {
+Rcpp::IntegerVector find_model_index(const Rcpp::List& models_haystack, 
+                                     const Rcpp::IntegerMatrix& cliques_needle) {
+  
   if (!(Rf_inherits(models_haystack, "learndgm_modelstructure_list") || 
         Rf_inherits(models_haystack, "learndgm_mimodelstructure_list"))) {
     Rcpp::stop("models_haystack must be a learndgm_modelstructure_list or a learndgm_mimodelstructure_list");
@@ -78,12 +93,14 @@ Rcpp::IntegerVector find_model_index(const Rcpp::List& models_haystack, const Rc
   int n = models_haystack["n"];
   
   std::vector<int> needle = cliques_to_upper_tri_adj_mat(
-    r_list_to_vector_vector(cliques_needle), n);
+    r_matrix_to_vector_vector(cliques_needle), n);
   
-  for (int i = 0; i < models_haystack.size(); ++i) {
-    Rcpp::List m = models_haystack[i];
-    Rcpp::List r_cliques = m["cliques"];
-    std::vector< std::vector<int> > cliques = r_list_to_vector_vector(r_cliques);
+  Rcpp::List models = models_haystack["models"];
+  
+  for (int i = 0; i < models.size(); ++i) {
+    Rcpp::List m = models[i];
+    Rcpp::IntegerMatrix r_cliques = m["cliques"];
+    std::vector< std::vector<int> > cliques = r_matrix_to_vector_vector(r_cliques);
     std::vector<int> upper_tri = cliques_to_upper_tri_adj_mat(cliques, n);
     
     // FIXME: equal_to_intvec
